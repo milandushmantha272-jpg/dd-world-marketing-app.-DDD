@@ -1,0 +1,342 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ========================================================================
+    // HELPER FUNCTIONS - AUTHORIZATION & ACCESS CONTROL
+    // ========================================================================
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data
+        : {};
+    }
+
+    function getUserRole() {
+      return getUserData().get('role', '');
+    }
+
+    function getUserTeamId() {
+      return getUserData().get('teamId', '');
+    }
+
+    function isOwner() {
+      return isSignedIn() && (getUserRole() == 'owner' || getUserRole() == 'MASTER_LEADER');
+    }
+
+    function isTeamSupervisor() {
+      return isSignedIn() && (
+        getUserRole() in ['owner', 'MASTER_LEADER', 'team_leader', 'junior_team_leader', 'TEAM_SUPERVISOR']
+      );
+    }
+
+    function isAuditOfficer() {
+      return isSignedIn() && (
+        getUserRole() in ['dialog_officer', 'owner', 'MASTER_LEADER']
+      );
+    }
+
+    function isInSameTeam(teamId) {
+      return isSignedIn() && getUserTeamId() == teamId;
+    }
+
+    function isOwnerDoc(userDocData, targetId) {
+      return targetId in ['owner-9000', 'owner-1'] || 
+             userDocData.get('role', '') in ['owner', 'MASTER_LEADER'] || 
+             userDocData.get('id', '') in ['owner-9000', 'owner-1'] ||
+             userDocData.get('agentCode', '') == '9000' ||
+             userDocData.get('email', '') in ['9000@ddworld.lk', 'd.d.worldmarketing1234@gmail.com'];
+    }
+
+    // ========================================================================
+    // USERS COLLECTION - AUTHENTICATION & PROFILES
+    // ========================================================================
+
+    match /users/{userId} {
+      // Read: Users read own profile, supervisors read team members, owners read all, audit officers read all for verification
+      allow read: if isSignedIn() && (
+        request.auth.uid == userId ||
+        isTeamSupervisor() ||
+        isAuditOfficer() ||
+        isOwner()
+      );
+
+      // Create: Owner can create, or self during initial provisioning
+      allow create: if isOwner() || (isSignedIn() && request.auth.uid == userId && !isOwnerDoc(request.resource.data, userId));
+
+      // Update: Users update own profile (not owner doc), supervisors update team members, owner updates any non-owner or self
+      allow update: if isSignedIn() && (
+        (isOwner() && (!isOwnerDoc(resource.data, userId) || request.auth.uid == userId)) ||
+        (
+          !isOwnerDoc(resource.data, userId) &&
+          !isOwnerDoc(request.resource.data, userId) &&
+          (request.auth.uid == userId || (isTeamSupervisor() && isInSameTeam(resource.data.teamId)))
+        )
+      );
+
+      // Delete: Owner only, and Owner record is immutable and undeletable
+      allow delete: if isOwner() && !isOwnerDoc(resource.data, userId);
+
+      match /sessions/{sessionId} {
+        allow read, write: if isSignedIn() && (request.auth.uid == userId || isOwner());
+      }
+    }
+
+    // ========================================================================
+    // SALES COLLECTION - TRANSACTION RECORDS & SALES VERIFICATION
+    // ========================================================================
+
+    match /sales/{saleId} {
+      // Read: Agent reads own sales, supervisor reads team sales, owner and audit officer see all
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.agentId || 
+        (isTeamSupervisor() && resource.data.teamId == getUserTeamId()) ||
+        isOwner() ||
+        isAuditOfficer()
+      );
+
+      // Create: Signed in agents or owners
+      allow create: if isSignedIn() && (
+        request.resource.data.agentId == request.auth.uid ||
+        isOwner()
+      );
+
+      // Update: Supervisor or owner can verify/update, or creator
+      allow update: if isSignedIn() && (
+        request.auth.uid == resource.data.agentId ||
+        isTeamSupervisor() ||
+        isOwner()
+      );
+
+      // Delete: Owner only
+      allow delete: if isOwner();
+    }
+
+    // ========================================================================
+    // ACTIVATIONS COLLECTION - USSD & APP REGISTRATION LEDGER
+    // ========================================================================
+
+    match /activations/{actId} {
+      // Read: Agent reads own, supervisor reads team, owner and audit officer read all
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.agentId || 
+        (isTeamSupervisor() && resource.data.teamId == getUserTeamId()) ||
+        isOwner() ||
+        isAuditOfficer()
+      );
+
+      // Create: Signed in agent or owner
+      allow create: if isSignedIn();
+
+      // Update: Agent updates status to SUCCESSFUL/FAILED, supervisor or owner validates
+      allow update: if isSignedIn() && (
+        request.auth.uid == resource.data.agentId ||
+        isTeamSupervisor() ||
+        isOwner()
+      );
+
+      // Delete: Owner only
+      allow delete: if isOwner();
+    }
+
+    // ========================================================================
+    // DIALOG_REPORT_IMPORT_ROWS - SCOPED READ-ONLY DIALOG AUDIT LEDGER
+    // ========================================================================
+
+    match /dialog_report_import_rows/{rowId} {
+      // Read: Audit officer and owner can review
+      allow read: if isAuditOfficer() || isOwner();
+
+      // Write: System/Owner only. Audit officer is explicitly blocked from modifying data
+      allow write: if isOwner();
+    }
+
+    // ========================================================================
+    // ATTENDANCE COLLECTION - GPS CLOCK-IN & TIMESHEETS
+    // ========================================================================
+
+    match /attendance/{attId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.agentId ||
+        (isTeamSupervisor() && resource.data.teamId == getUserTeamId()) ||
+        isOwner() ||
+        isAuditOfficer()
+      );
+
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (
+        request.auth.uid == resource.data.agentId ||
+        isTeamSupervisor() ||
+        isOwner()
+      );
+      allow delete: if isOwner();
+    }
+
+    // ========================================================================
+    // IVR COLLECTION - CALL CAMPAIGN LOGS
+    // ========================================================================
+
+    match /ivr/{ivrId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.agentId ||
+        (isTeamSupervisor() && resource.data.teamId == getUserTeamId()) ||
+        isOwner() ||
+        isAuditOfficer()
+      );
+
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (
+        request.auth.uid == resource.data.agentId ||
+        isTeamSupervisor() ||
+        isOwner()
+      );
+      allow delete: if isOwner();
+    }
+
+    // ========================================================================
+    // TEAMS COLLECTION - ORGANIZATIONAL STRUCTURE
+    // ========================================================================
+
+    match /teams/{teamId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner();
+    }
+
+    // ========================================================================
+    // LEAVES COLLECTION - TIME-OFF REQUESTS
+    // ========================================================================
+
+    match /leaves/{leaveId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.userId ||
+        request.auth.uid == resource.data.agentId ||
+        (isTeamSupervisor() && resource.data.teamId == getUserTeamId()) ||
+        isOwner()
+      );
+
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (
+        request.auth.uid == resource.data.userId ||
+        request.auth.uid == resource.data.agentId ||
+        isTeamSupervisor() ||
+        isOwner()
+      );
+      allow delete: if isOwner();
+    }
+
+    // ========================================================================
+    // MESSAGES COLLECTION - INTERNAL COMMUNICATION & NOTICES
+    // ========================================================================
+
+    match /messages/{msgId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (
+        request.auth.uid == resource.data.senderId ||
+        isOwner()
+      );
+      allow delete: if isOwner();
+    }
+
+    // ========================================================================
+    // LOCATION_RECORDS & LOCATION_LOGS - ANTI-SPOOFING GPS TRACKING
+    // ========================================================================
+
+    match /location_records/{recordId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.userId || 
+        request.auth.uid == resource.data.employee_id ||
+        (isTeamSupervisor() && resource.data.teamId == getUserTeamId()) ||
+        isOwner()
+      );
+
+      allow create: if isSignedIn();
+      allow update: if false; // Immutable GPS history
+      allow delete: if isOwner();
+    }
+
+    match /location_logs/{recordId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.userId || 
+        request.auth.uid == resource.data.employee_id ||
+        (isTeamSupervisor() && resource.data.teamId == getUserTeamId()) ||
+        isOwner()
+      );
+
+      allow create: if isSignedIn();
+      allow update: if false;
+      allow delete: if isOwner();
+    }
+
+    // ========================================================================
+    // TRACKING_SESSIONS - LIVE SHIFT MANAGEMENT
+    // ========================================================================
+
+    match /tracking_sessions/{sessionId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.userId || 
+        (isTeamSupervisor() && resource.data.teamId == getUserTeamId()) ||
+        isOwner()
+      );
+
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (request.auth.uid == resource.data.userId || isOwner());
+      allow delete: if isOwner();
+    }
+
+    // ========================================================================
+    // AUDIT_LOGS & EMPLOYEE_ID_AUDITS - ENTERPRISE AUDIT TRAIL
+    // ========================================================================
+
+    match /audit_logs/{logId} {
+      // Audit officer, supervisors and owner can read all audit logs
+      allow read: if isAuditOfficer() || isTeamSupervisor() || isOwner();
+      // Authenticated users can write log entries (e.g. login, actions, activations)
+      allow create: if isSignedIn();
+      // Audit logs are strictly immutable - never updated or deleted
+      allow update, delete: if false;
+    }
+
+    match /employee_id_audits/{auditId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.userId || 
+        isTeamSupervisor() ||
+        isOwner() ||
+        isAuditOfficer()
+      );
+      allow create: if isSignedIn();
+      allow update, delete: if isOwner();
+    }
+
+    // ========================================================================
+    // SYSTEM SETTINGS, TARGETS & GEOFENCES
+    // ========================================================================
+
+    match /location_config/{configId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner();
+    }
+
+    match /geofence_zones/{zoneId} {
+      allow read: if isSignedIn();
+      allow write: if isTeamSupervisor() || isOwner();
+    }
+
+    match /targets/{targetId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner();
+    }
+
+    // ========================================================================
+    // CATCH-ALL RULE - DEFAULT DENY
+    // ========================================================================
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

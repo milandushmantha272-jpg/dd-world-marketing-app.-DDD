@@ -1,0 +1,13 @@
+node_modules/
+build/
+dist/
+android-sdk/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+android/app/build/
+android/.gradle/
+android/build/
+.gradle/

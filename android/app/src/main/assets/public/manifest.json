@@ -1,0 +1,32 @@
+{
+  "id": "/",
+  "short_name": "DD World",
+  "name": "DD World Marketing",
+  "description": "DD World Marketing exclusively executes the direct field sales, enrollment, and promotion operations for Dialog Axiata PLC's 'Sayura' and 'Govi Mithuru' platforms.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

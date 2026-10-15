@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f8fafc" />
+    </linearGradient>
+
+    <!-- Green Leaf Gradient -->
+    <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#43B02A" />
+      <stop offset="60%" stop-color="#34941E" />
+      <stop offset="100%" stop-color="#1B630E" />
+    </linearGradient>
+
+    <!-- Ocean Wave Gradient -->
+    <linearGradient id="waveGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00BAFF" />
+      <stop offset="45%" stop-color="#0077D7" />
+      <stop offset="100%" stop-color="#0A2569" />
+    </linearGradient>
+
+    <!-- Wave Dark Pool -->
+    <linearGradient id="waveDarkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0052A3" />
+      <stop offset="100%" stop-color="#061B4D" />
+    </linearGradient>
+
+    <!-- Drop Shadow Filter -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#0f172a" flood-opacity="0.12" />
+    </filter>
+  </defs>
+
+  <!-- Clean Canvas Backdrop -->
+  <rect width="512" height="512" rx="100" fill="url(#bgGrad)" />
+  <rect width="504" height="504" x="4" y="4" rx="96" fill="none" stroke="#e2e8f0" stroke-width="4" opacity="0.8" />
+
+  <!-- Top "DD" Header in Bold Corporate Navy -->
+  <text x="256" y="96" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="64" fill="#0A2569" text-anchor="middle" letter-spacing="2">DD</text>
+
+  <!-- Circular Emblem Container -->
+  <g transform="translate(256, 250) scale(1.05)" filter="url(#shadow)">
+    <!-- White Circle Base -->
+    <circle cx="0" cy="0" r="116" fill="#ffffff" stroke="#f1f5f9" stroke-width="2" />
+
+    <!-- Ocean Wave (Right & Bottom Swirl) -->
+    <path
+      d="M 0 110 C 60 110 110 60 110 0 C 110 -45 85 -85 45 -95 C 60 -75 68 -50 62 -25 C 55 5 25 15 15 35 C 5 55 18 78 40 78 C 60 78 80 58 72 32 C 68 18 52 10 52 0 C 52 -15 72 -30 90 -15 C 105 15 98 65 65 92 C 45 108 22 110 0 110 Z"
+      fill="url(#waveGrad)"
+    />
+
+    <!-- Inner Wave Curl Accent -->
+    <path
+      d="M 45 -95 C 32 -105 15 -100 8 -88 C 2 -75 14 -62 26 -68 C 38 -74 52 -62 40 -48 C 28 -34 4 -40 -2 -22 C 16 -28 36 -35 48 -55 C 55 -68 54 -88 45 -95 Z"
+      fill="#00C0FF"
+    />
+
+    <!-- Wave Dark Pool Base -->
+    <path
+      d="M 10 40 C 0 55 10 85 35 90 C 60 92 80 75 75 50 C 70 30 50 30 40 45 C 35 52 25 50 20 42 Z"
+      fill="url(#waveDarkGrad)"
+    />
+
+    <!-- Swimming Fish in the Ocean Wave Pool -->
+    <g transform="translate(32, 64) scale(0.55)">
+      <!-- Fish Body -->
+      <path
+        d="M -30 0 C -15 -18 15 -18 35 0 C 15 18 -15 18 -30 0 Z"
+        fill="#8CE8FF"
+      />
+      <!-- Fish Tail -->
+      <path
+        d="M 32 0 L 52 -16 L 46 0 L 52 16 Z"
+        fill="#38BDF8"
+      />
+      <!-- Fish Fin -->
+      <path
+        d="M 2 -4 C 10 -16 20 -10 14 -2 Z"
+        fill="#0284C7"
+      />
+      <!-- Fish Eye -->
+      <circle cx="-16" cy="-3" r="3.5" fill="#ffffff" />
+      <circle cx="-16" cy="-3" r="1.8" fill="#0A2569" />
+    </g>
+
+    <!-- Green Leaf (Left Side) -->
+    <path
+      d="M 0 110 C -65 110 -110 60 -110 0 C -110 -65 -60 -95 -20 -95 C -40 -60 -52 -15 -40 30 C -28 65 -12 95 0 110 Z"
+      fill="url(#leafGrad)"
+    />
+
+    <!-- White Wheat Stalk Stem on Leaf -->
+    <path
+      d="M -22 -85 C -42 -35 -48 20 0 110"
+      stroke="#ffffff"
+      stroke-width="3.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      opacity="0.9"
+    />
+
+    <!-- Wheat / Rice Grains Along Stem (Govimithuru #616#) -->
+    <g fill="#ffffff" opacity="0.95">
+      <ellipse cx="-44" cy="-35" rx="4" ry="9" transform="rotate(-30 -44 -35)" />
+      <ellipse cx="-33" cy="-45" rx="4" ry="9" transform="rotate(25 -33 -45)" />
+      <ellipse cx="-50" cy="-10" rx="4.5" ry="10" transform="rotate(-35 -50 -10)" />
+      <ellipse cx="-37" cy="-20" rx="4.5" ry="10" transform="rotate(25 -37 -20)" />
+      <ellipse cx="-52" cy="18" rx="4.5" ry="10" transform="rotate(-40 -52 18)" />
+      <ellipse cx="-38" cy="8" rx="4.5" ry="10" transform="rotate(25 -38 8)" />
+      <ellipse cx="-48" cy="46" rx="4.5" ry="10" transform="rotate(-40 -48 46)" />
+      <ellipse cx="-34" cy="36" rx="4.5" ry="10" transform="rotate(30 -34 36)" />
+      <ellipse cx="-38" cy="74" rx="4" ry="9" transform="rotate(-45 -38 74)" />
+      <ellipse cx="-24" cy="65" rx="4" ry="9" transform="rotate(30 -24 65)" />
+    </g>
+  </g>
+
+  <!-- Bottom "WORLD MARKETING" in Bold Leaf Green -->
+  <text x="256" y="445" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="34" fill="#38A110" text-anchor="middle" letter-spacing="4">WORLD MARKETING</text>
+</svg>
