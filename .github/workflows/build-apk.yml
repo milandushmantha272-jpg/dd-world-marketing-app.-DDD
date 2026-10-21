@@ -28,10 +28,12 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages:packages: "platforms;android-36 build-tools;36.0.0 platform-tools"
+          packages: "platforms;android-36 build-tools;36.0.0 platform-tools"
+
 
       - name: Install Dependencies
         run: |
