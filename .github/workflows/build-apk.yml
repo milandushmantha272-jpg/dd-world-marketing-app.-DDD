@@ -22,11 +22,13 @@ jobs:
         with:
           node-version: 22
 
-      - name: Setup Java 17 (JDK)
+      
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: temurin
+          java-version: '21'
+
 
       
       - name: Setup Android SDK
