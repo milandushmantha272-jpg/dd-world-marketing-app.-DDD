@@ -241,7 +241,7 @@ export const MobileLoginScreen: React.FC<MobileLoginScreenProps> = ({ onSuccess 
               ඔබගේ මුරපදය නැවත සකස් කර ගැනීමට ආයතන පරිපාලක (Owner) හෝ Team Leader අමතන්න:
             </p>
             <div className="p-3 bg-slate-50 rounded-xl text-xs font-mono font-bold text-slate-700">
-              📞 Hotline: 0767046094 / 0775976148
+              📞 Hotline: 0767046094
             </div>
             <button
               onClick={() => setShowForgotModal(false)}
