@@ -65,11 +65,11 @@ export const MobileLoginScreen: React.FC<MobileLoginScreenProps> = ({ onSuccess 
         return;
       }
 
-      // Password Validation
-      const correctPass = found.password || found.tempPassword || `password${found.agentCode}!`;
-      if (password && password.trim() !== correctPass.trim()) {
+      // Fail closed: never permit an empty password or a predictable fallback password.
+      const correctPass = found.password || found.tempPassword;
+      if (!password.trim() || !correctPass || password.trim() !== correctPass.trim()) {
         setIsLoading(false);
-        setError('මුරපදය (Password) වැරදියි. කරුණාකර නැවත උත්සාහ කරන්න.');
+        setError('Agent Code හෝ Password වැරදියි. Password එක සකසා නැත්නම් Owner අමතා ආරක්ෂිතව නැවත සකස් කරගන්න.');
         return;
       }
 
@@ -77,12 +77,6 @@ export const MobileLoginScreen: React.FC<MobileLoginScreenProps> = ({ onSuccess 
       setIsLoading(false);
       if (onSuccess) onSuccess();
     }, 400);
-  };
-
-  const handleQuickDemoFill = (code: string, pass: string) => {
-    setAgentId(code);
-    setPassword(pass);
-    setError(null);
   };
 
   return (
@@ -173,37 +167,6 @@ export const MobileLoginScreen: React.FC<MobileLoginScreenProps> = ({ onSuccess 
             </button>
           </div>
         </form>
-
-        {/* Quick Demo Fill Pills (for instant testing by reviewers) */}
-        <div className="mt-5 p-2.5 rounded-2xl bg-slate-50 border border-slate-100">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1 text-center">
-            Quick Roster Fill
-          </span>
-          <div className="grid grid-cols-3 gap-1.5 text-[11px] font-bold">
-            <button
-              type="button"
-              onClick={() => handleQuickDemoFill('9074', 'password9074!')}
-              className="px-2 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-blue-400 text-slate-700 text-center transition truncate"
-            >
-              Agent 9074
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickDemoFill('9087', 'password9087!')}
-              className="px-2 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-blue-400 text-slate-700 text-center transition truncate"
-            >
-              Leader 9087
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickDemoFill('9000', 'password9000!')}
-              className="px-2 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-blue-400 text-slate-700 text-center transition truncate"
-            >
-              Owner 9000
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* Security Badges at Bottom (matching mockup) */}
       <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-around text-slate-600 relative z-10">
