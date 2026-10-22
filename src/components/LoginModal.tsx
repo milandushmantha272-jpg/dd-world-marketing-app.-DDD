@@ -62,16 +62,13 @@ export const LoginModal: React.FC = () => {
       return;
     }
 
-    // If user has a password set, populate their code so they can enter password
-    if (target.password || target.tempPassword) {
-      setAgentCode(target.agentCode || target.employeeId || target.id);
-      setError(`ℹ️ ${target.name} (${target.agentCode || target.role}) සඳහා නියමිත Password එක ඇතුළත් කර Login වන්න.`);
+    // A roster selection is never an authentication factor. Do not sign in from a name/code tap.
+    if (!target.password && !target.tempPassword && !target.pinCode) {
+      setError('මෙම ගිණුමට ආරක්ෂිත Password එකක් සකසා නැත. Owner අමතා ගිණුම සකස් කරගන්න.');
       return;
     }
-
-    // Remember last selected user for quick fingerprint login
-    safeStorage.setItem('ddworld_last_bio_user_id', userId);
-    login(userId);
+    setAgentCode(target.agentCode || target.employeeId || target.id);
+    setError(`${target.name} සඳහා Password එක ඇතුළත් කර Login වන්න.`);
   };
 
   const handleManualLogin = (e: React.FormEvent) => {
@@ -116,127 +113,15 @@ export const LoginModal: React.FC = () => {
       return;
     }
 
-    // Check password if set
+    // Fail closed: a missing password must never mean passwordless access.
     const requiredPass = found.password || found.tempPassword || found.pinCode;
-    if (requiredPass) {
-      if (!passwordInput || !passwordInput.trim()) {
-        setError(`කරුණාකර ${found.name} (${found.agentCode}) සඳහා වන Password ඇතුළත් කරන්න.`);
-        return;
-      }
-      if (passwordInput.trim() !== requiredPass.trim()) {
-        setError('ඇතුළත් කළ මුරපදය (Password) වැරදියි. කරුණාකර නැවත උත්සාහ කරන්න.');
-        return;
-      }
+    if (!requiredPass || !passwordInput.trim() || passwordInput.trim() !== requiredPass.trim()) {
+      setError('Agent Code හෝ Password වැරදියි. Password එකක් සකසා නැත්නම් Owner අමතා ආරක්ෂිතව නැවත සකස් කරගන්න.');
+      return;
     }
 
     safeStorage.setItem('ddworld_last_bio_user_id', found.id);
     login(found.id);
-  };
-
-  // Biometric / Fingerprint Authentication Flow with Anti-Cheat GPS Integrity
-  const handleBiometricLogin = async () => {
-    setBioError(null);
-    setFraudAlert(null);
-    setIsCheckingSecurity(true);
-
-    try {
-      // Step A: Anti-Cheat & GPS Mock Integrity Check
-      // Checks Android Location.isMock() or browser mock location injection
-      const gpsSecurityResult = await new Promise<{ isMock: boolean; reason?: string }>((resolve) => {
-        if (!navigator.geolocation) {
-          resolve({ isMock: false });
-          return;
-        }
-
-        const timeout = setTimeout(() => {
-          resolve({ isMock: false });
-        }, 2200);
-
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            clearTimeout(timeout);
-            const coords = pos.coords as any;
-            // Direct Android Location.isMock() inspection
-            if (
-              coords.isMock === true ||
-              coords.mocked === true ||
-              coords.isFromMockProvider === true ||
-              coords.mockLocation === true
-            ) {
-              resolve({
-                isMock: true,
-                reason: 'Android Mock Location Provider හඳුනාගන්නා ලදී (Location.isMock() == true)',
-              });
-              return;
-            }
-
-            // Heuristic Anti-Cheat validation
-            const detection = detectFakeGps(pos.coords);
-            if (detection.isFake) {
-              resolve({
-                isMock: true,
-                reason: detection.reason || 'GPS Spoofing / Mock Signal Detected',
-              });
-              return;
-            }
-
-            resolve({ isMock: false });
-          },
-          (err) => {
-            clearTimeout(timeout);
-            resolve({ isMock: false });
-          },
-          { enableHighAccuracy: true, timeout: 2200, maximumAge: 0 }
-        );
-      });
-
-      if (gpsSecurityResult.isMock) {
-        setIsCheckingSecurity(false);
-        setFraudAlert(
-          `🚨 වංචනික GPS හෝ Mock Location හඳුනාගන්නා ලදී (FRAUD ALERT: Mock GPS Spoofing Detected). හේතුව: ${gpsSecurityResult.reason}. උපාංගයේ සත්‍යාපනය අසාර්ථකයි - පද්ධතියට පිවිසීම ආරක්ෂිතව අවහිර කර ඇත.`
-        );
-        return;
-      }
-
-      setIsCheckingSecurity(false);
-      setIsBioScanning(true);
-
-      // Find candidate user (either remembered user, or first user of selected role)
-      const rememberedId = safeStorage.getItem('ddworld_last_bio_user_id');
-      const candidateUser =
-        (rememberedId && users.find((u) => u.id === rememberedId)) ||
-        filteredUsers[0] ||
-        users.find((u) => u.role === 'owner') ||
-        users[0];
-
-      if (!candidateUser) {
-        throw new Error('Biometric ලියාපදිංචි පරිශීලකයෙකු හමු නොවීය.');
-      }
-
-      if (
-        candidateUser.employmentStatus === 'BLOCKED' ||
-        candidateUser.employmentStatus === 'SUSPENDED' ||
-        candidateUser.status === 'blocked'
-      ) {
-        throw new Error('මෙම ගිණුම පරිපාලක විසින් අත්හිටුවා ඇත (ACCOUNT BLOCKED).');
-      }
-
-      // Biometric scan latency simulation
-      await new Promise((resolve) => setTimeout(resolve, 900));
-
-      setBioSuccess(true);
-      setTimeout(() => {
-        setIsBioScanning(false);
-        setBioSuccess(false);
-        login(candidateUser.id);
-      }, 650);
-    } catch (err: any) {
-      console.warn('Biometric login warning:', err);
-      setIsCheckingSecurity(false);
-      setIsBioScanning(false);
-      setBioError(err?.message || 'Fingerprint සංවේදකය කියවීමට නොහැකි විය. කරුණාකර නැවත උත්සාහ කරන්න.');
-      setTimeout(() => setBioError(null), 5000);
-    }
   };
 
   if (loginViewMode === 'mobile') {
@@ -293,127 +178,6 @@ export const LoginModal: React.FC = () => {
           <p className="text-xs text-slate-400 font-medium">
             Official Dialog Sayura (#828#) &amp; Govi Mithuru (#616#) Operational Platform
           </p>
-        </div>
-
-        {/* CLOUD & BIOMETRICS STATUS BADGES */}
-        <div className="grid grid-cols-2 gap-2 text-[11px] font-bold">
-          <div className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <span className="truncate">Firebase: සක්‍රීයයි (Active)</span>
-          </div>
-          <div className="flex items-center justify-center gap-1.5 p-2 rounded-xl bg-red-500/10 border border-[#E1141E]/40 text-red-300">
-            <Fingerprint className="w-3.5 h-3.5 text-[#E1141E] shrink-0 animate-pulse" />
-            <span className="truncate">Biometric: සක්‍රීයයි (Ready)</span>
-          </div>
-        </div>
-
-        {/* MODERN HIGH-FIDELITY BIOMETRIC FINGERPRINT SECTION */}
-        <div className="relative p-5 rounded-2xl bg-gradient-to-b from-slate-950/90 via-slate-900/90 to-slate-950/90 border-2 border-[#E1141E]/40 hover:border-[#E1141E] transition-all shadow-xl shadow-red-950/20 text-center overflow-hidden">
-          {/* Top badge */}
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <div className="flex items-center gap-1.5 text-xs font-black text-[#E1141E]">
-              <Sparkles className="w-3.5 h-3.5 animate-spin" />
-              <span className="tracking-wider uppercase font-mono">Dialog Axiata Biometric Auth</span>
-            </div>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-              FIDO2 / Biometric Ready
-            </span>
-          </div>
-
-          {/* Full-width Anti-Fraud Alert */}
-          {fraudAlert && (
-            <div className="mb-4 p-3 rounded-xl bg-red-950/90 border-2 border-red-500 text-left space-y-1 animate-pulse">
-              <div className="flex items-center gap-2 text-red-300 text-xs font-black">
-                <ShieldAlert className="w-5 h-5 text-red-500 shrink-0" />
-                <span>ආරක්ෂක අනතුරු ඇඟවීමයි (SECURITY FRAUD BREACH)</span>
-              </div>
-              <p className="text-[11px] text-red-200 leading-relaxed font-medium">
-                {fraudAlert}
-              </p>
-            </div>
-          )}
-
-          {/* Interactive Biometric Icon with dynamic glowing pulsing ripple */}
-          <div className="flex flex-col items-center justify-center my-3 relative">
-            <button
-              type="button"
-              onClick={handleBiometricLogin}
-              disabled={isBioScanning || isCheckingSecurity}
-              className={`relative w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl ${
-                bioSuccess
-                  ? 'bg-emerald-500 text-slate-950 border-4 border-emerald-300 ring-8 ring-emerald-500/30 scale-105'
-                  : isBioScanning
-                  ? 'bg-red-500/20 text-red-400 border-4 border-[#E1141E] ring-8 ring-[#E1141E]/30 scale-105'
-                  : isCheckingSecurity
-                  ? 'bg-amber-500/20 text-amber-300 border-4 border-amber-500 ring-8 ring-amber-500/30 animate-pulse'
-                  : 'bg-slate-950 text-[#E1141E] hover:text-white border-2 border-[#E1141E]/60 hover:border-[#E1141E] hover:bg-[#E1141E]/10 hover:scale-105'
-              }`}
-              title="ඇඟිලි සලකුණ තබන්න / Scan Fingerprint"
-            >
-              {/* Dynamic Glowing Pulsing Circular Ripple (animate-ping) */}
-              {(isBioScanning || isCheckingSecurity) && (
-                <span
-                  className={`absolute inset-0 rounded-full animate-ping opacity-75 ${
-                    isCheckingSecurity ? 'bg-amber-400' : 'bg-[#E1141E]'
-                  }`}
-                />
-              )}
-              {!isBioScanning && !isCheckingSecurity && !bioSuccess && (
-                <span className="absolute -inset-1 rounded-full border border-[#E1141E]/30 animate-pulse pointer-events-none" />
-              )}
-
-              {bioSuccess ? (
-                <CheckCircle2 className="w-12 h-12 text-slate-950 relative z-10 transition-transform duration-300 scale-110" />
-              ) : isCheckingSecurity ? (
-                <ShieldCheck className="w-12 h-12 text-amber-400 relative z-10 animate-bounce" />
-              ) : (
-                <Fingerprint
-                  className={`w-12 h-12 relative z-10 transition-transform duration-300 ${
-                    isBioScanning ? 'animate-pulse text-red-400 scale-110' : ''
-                  }`}
-                />
-              )}
-            </button>
-
-            {/* Intuitive Bilingual Subtext Labels */}
-            <div className="mt-3 space-y-1">
-              <p className="text-sm font-black text-white tracking-wide">
-                ඇඟිලි සලකුණ තබන්න / Scan Fingerprint
-              </p>
-              <p className="text-[11px] text-slate-400">
-                One-Touch Biometric TouchID &amp; Android Keystore Protection
-              </p>
-            </div>
-          </div>
-
-          {/* Visible Anti-Cheat Text Status Loader during Location.isMock() verification */}
-          {isCheckingSecurity && (
-            <div className="mt-3 p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center justify-center gap-2 animate-pulse">
-              <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-              <span>උපාංගයේ ආරක්ෂාව සහ සජීවී පිහිටීම පරීක්ෂා කරමින්... / Checking device security &amp; GPS integrity...</span>
-            </div>
-          )}
-
-          {isBioScanning && !isCheckingSecurity && (
-            <div className="mt-3 p-2 rounded-xl bg-red-500/10 border border-[#E1141E]/30 text-red-300 text-xs font-bold flex items-center justify-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#E1141E] animate-ping" />
-              <span>ඇඟිලි සලකුණ කියවමින් පවතී... / Verifying Biometric Credentials...</span>
-            </div>
-          )}
-
-          {bioSuccess && (
-            <div className="mt-3 p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span>සත්‍යාපනය සාර්ථකයි (Biometric Authorized) - පිවිසෙමින් පවතී...</span>
-            </div>
-          )}
-
-          {bioError && !fraudAlert && (
-            <div className="mt-3 p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold flex items-center justify-center gap-1.5">
-              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-              <span>{bioError}</span>
-            </div>
-          )}
         </div>
 
         {/* ROLE SELECTION TABS */}
