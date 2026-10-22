@@ -167,6 +167,7 @@ export const MobileLoginScreen: React.FC<MobileLoginScreenProps> = ({ onSuccess 
             </button>
           </div>
         </form>
+      </div>
 
       {/* Security Badges at Bottom (matching mockup) */}
       <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-around text-slate-600 relative z-10">
