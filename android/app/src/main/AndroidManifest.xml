@@ -29,11 +29,23 @@
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:exported="true">
             
+            
+        </activity>
+
+        <!-- Explicit launcher alias ensures Android registers the app in the launcher. -->
+        <activity-alias
+            android:name="com.ddworld.marketing.LauncherActivity"
+            android:targetActivity="com.ddworld.marketing.MainActivity"
+            android:enabled="true"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.action.LAUNCHER" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity-alias>
 
         <service
             android:name="com.ddworld.marketing.service.LocationTrackingService"
