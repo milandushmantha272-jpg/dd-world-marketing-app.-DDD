@@ -82,26 +82,26 @@ begin
   end;
 
   normalized_role := case
-    when pg_catalog.lower(pg_catalog.coalesce(new.role, '')) = 'owner' then 'owner'
-    when pg_catalog.lower(pg_catalog.coalesce(new.role, '')) = 'team_leader' then 'team_leader'
-    when pg_catalog.lower(pg_catalog.coalesce(new.role, '')) = 'direct_agent' then 'direct_agent'
-    when pg_catalog.lower(pg_catalog.coalesce(new.role, '')) = 'agent' and new.team_id is null then 'direct_agent'
-    when pg_catalog.lower(pg_catalog.coalesce(new.role, '')) = 'agent' then 'agent'
+    when pg_catalog.lower(coalesce(new.role, '')) = 'owner' then 'owner'
+    when pg_catalog.lower(coalesce(new.role, '')) = 'team_leader' then 'team_leader'
+    when pg_catalog.lower(coalesce(new.role, '')) = 'direct_agent' then 'direct_agent'
+    when pg_catalog.lower(coalesce(new.role, '')) = 'agent' and new.team_id is null then 'direct_agent'
+    when pg_catalog.lower(coalesce(new.role, '')) = 'agent' then 'agent'
     else 'unassigned'
   end;
 
   is_approved :=
-    pg_catalog.lower(pg_catalog.coalesce(new.status, '')) = 'active'
-    and pg_catalog.upper(pg_catalog.coalesce(new.employment_status, '')) = 'ACTIVE'
-    and pg_catalog.upper(pg_catalog.coalesce(new.id_approval_status, '')) = 'APPROVED';
+    pg_catalog.lower(coalesce(new.status, '')) = 'active'
+    and pg_catalog.upper(coalesce(new.employment_status, '')) = 'ACTIVE'
+    and pg_catalog.upper(coalesce(new.id_approval_status, '')) = 'APPROVED';
 
   insert into public.employees (
     id, source_user_id, auth_user_id, employee_code, full_name, phone_e164,
     status, approved, role, team_id, created_at, updated_at
   ) values (
     new.id, new.id, new.auth_user_id, new.agent_code, new.name, normalized_phone,
-    pg_catalog.lower(pg_catalog.coalesce(new.status, 'pending')), is_approved,
-    normalized_role, new.team_id, pg_catalog.coalesce(new.created_at, pg_catalog.now()), pg_catalog.now()
+    pg_catalog.lower(coalesce(new.status, 'pending')), is_approved,
+    normalized_role, new.team_id, coalesce(new.created_at, pg_catalog.now()), pg_catalog.now()
   )
   on conflict (id) do update set
     source_user_id = excluded.source_user_id,
@@ -142,20 +142,20 @@ select
     when u.phone ~ '^\+[1-9][0-9]{7,14}$' then u.phone
     else null
   end,
-  pg_catalog.lower(pg_catalog.coalesce(u.status, 'pending')),
-  pg_catalog.lower(pg_catalog.coalesce(u.status, '')) = 'active'
-    and pg_catalog.upper(pg_catalog.coalesce(u.employment_status, '')) = 'ACTIVE'
-    and pg_catalog.upper(pg_catalog.coalesce(u.id_approval_status, '')) = 'APPROVED',
+  pg_catalog.lower(coalesce(u.status, 'pending')),
+  pg_catalog.lower(coalesce(u.status, '')) = 'active'
+    and pg_catalog.upper(coalesce(u.employment_status, '')) = 'ACTIVE'
+    and pg_catalog.upper(coalesce(u.id_approval_status, '')) = 'APPROVED',
   case
-    when pg_catalog.lower(pg_catalog.coalesce(u.role, '')) = 'owner' then 'owner'
-    when pg_catalog.lower(pg_catalog.coalesce(u.role, '')) = 'team_leader' then 'team_leader'
-    when pg_catalog.lower(pg_catalog.coalesce(u.role, '')) = 'direct_agent' then 'direct_agent'
-    when pg_catalog.lower(pg_catalog.coalesce(u.role, '')) = 'agent' and u.team_id is null then 'direct_agent'
-    when pg_catalog.lower(pg_catalog.coalesce(u.role, '')) = 'agent' then 'agent'
+    when pg_catalog.lower(coalesce(u.role, '')) = 'owner' then 'owner'
+    when pg_catalog.lower(coalesce(u.role, '')) = 'team_leader' then 'team_leader'
+    when pg_catalog.lower(coalesce(u.role, '')) = 'direct_agent' then 'direct_agent'
+    when pg_catalog.lower(coalesce(u.role, '')) = 'agent' and u.team_id is null then 'direct_agent'
+    when pg_catalog.lower(coalesce(u.role, '')) = 'agent' then 'agent'
     else 'unassigned'
   end,
   u.team_id,
-  pg_catalog.coalesce(u.created_at, pg_catalog.now()),
+  coalesce(u.created_at, pg_catalog.now()),
   pg_catalog.now()
 from public.users u
 on conflict (id) do update set
