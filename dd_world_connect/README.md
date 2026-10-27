@@ -13,16 +13,30 @@ Enterprise employee and sales management platform for **DD WORLD MARKETING** (te
 - Agent: own records and authorized submissions
 - Direct Agent: own records, reporting directly to Owner
 
-## Project status
-This folder is the initial application foundation and architecture. It is not yet a production release. Configure project credentials, complete the migrations and policies, implement feature screens and workflows, and run security/integration tests before deployment.
+## Authentication implementation
+The app uses mobile-number SMS OTP only. There is no username/password login screen or password authentication repository.
+
+After OTP verification, the app calls `employee-session-bootstrap`. The server verifies the authenticated Supabase user and requires a matching employee record with `status = 'active'`, `approved = true`, and exactly one current role assignment. The server links the employee to the verified Auth UID and registers or validates the one active device. The app then routes to the dashboard for the server-returned role.
+
+Owner device reset is implemented through the authenticated `owner-reset-device` Edge Function and an Owner-only screen.
+
+See [authentication setup](docs/authentication-setup.md) for migration order, Supabase provider configuration, deployment and security notes.
 
 ## Setup
 1. Install the current stable Flutter SDK and Android toolchain.
-2. From this directory run `flutter pub get`.
-3. Copy `.env.example` to a local configuration file and provide the Supabase URL and publishable/anon key using your chosen build-time configuration approach.
-4. Configure Firebase for each target platform and keep server credentials out of the mobile app.
-5. Apply reviewed SQL migrations to a non-production Supabase project first.
-6. Test OTP, role isolation, device revocation, GPS permission denial, duplicate activations and commission calculations.
+2. Apply the migrations in `supabase/migrations/` to a development Supabase project in filename order.
+3. Enable Supabase Phone Auth and configure an SMS provider.
+4. Deploy `employee-session-bootstrap` and `owner-reset-device` Edge Functions with JWT verification enabled.
+5. Configure the functions' server-side Supabase environment. Never put the service-role key in Flutter or source control.
+6. Run `flutter pub get`, `flutter analyze`, and `flutter test` from this directory.
+7. Build with the Supabase URL and publishable key supplied via `--dart-define`.
+
+Example:
+```sh
+flutter build apk --release \
+  --dart-define=SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co \
+  --dart-define=SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
+```
 
 ## Security rules
 - Never put a Supabase service-role/secret key in the app.
@@ -31,3 +45,6 @@ This folder is the initial application foundation and architecture. It is not ye
 - Require approved active employee records after OTP verification.
 - Device registration is a risk control, not proof of identity by itself.
 - Collect location only for declared business purposes and with appropriate permission and notice.
+
+## Project status
+The OTP screens, session bootstrap client, role guard, installation ID service, Edge Function source and database migration files have been added to the feature branch. They have **not** been deployed to Supabase or verified on a real device yet. Do not use this as a production release until migrations and Edge Functions are deployed, credentials are configured, and automated plus real-device tests pass.
