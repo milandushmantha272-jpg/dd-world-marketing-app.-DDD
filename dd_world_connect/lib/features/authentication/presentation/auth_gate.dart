@@ -146,6 +146,7 @@ class RoleDashboard extends StatelessWidget {
           ('Team Reports', Icons.assessment_outlined),
         ],
       EmployeeRole.agent => const [
+          ('My Profile', Icons.badge_outlined),
           ('My Attendance', Icons.location_on_outlined),
           ('Submit Activation', Icons.add_chart_outlined),
           ('My Sales', Icons.trending_up_rounded),
@@ -154,6 +155,7 @@ class RoleDashboard extends StatelessWidget {
           ('Complaints', Icons.support_agent_outlined),
         ],
       EmployeeRole.directAgent => const [
+          ('My Profile', Icons.badge_outlined),
           ('My Attendance', Icons.location_on_outlined),
           ('Submit Activation', Icons.add_chart_outlined),
           ('My Sales', Icons.trending_up_rounded),
@@ -223,8 +225,8 @@ class RoleDashboard extends StatelessWidget {
               return Card(
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
-                  onTap: (item.$1 == 'Employees' && profile.role == EmployeeRole.owner) || (item.$1 == 'My Team' && profile.role == EmployeeRole.teamLeader)
-                      ? () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => RoleGuard(profile: profile, allowedRoles: profile.role == EmployeeRole.owner ? const {EmployeeRole.owner} : const {EmployeeRole.teamLeader}, child: EmployeeManagementScreen(canManage: profile.role == EmployeeRole.owner))))
+                  onTap: (item.$1 == 'Employees' && profile.role == EmployeeRole.owner) || (item.$1 == 'My Team' && profile.role == EmployeeRole.teamLeader) || (item.$1 == 'My Profile' && (profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent))
+                      ? () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => RoleGuard(profile: profile, allowedRoles: switch (profile.role) { EmployeeRole.owner => const {EmployeeRole.owner}, EmployeeRole.teamLeader => const {EmployeeRole.teamLeader}, EmployeeRole.agent => const {EmployeeRole.agent}, EmployeeRole.directAgent => const {EmployeeRole.directAgent} }, child: EmployeeManagementScreen(canManage: profile.role == EmployeeRole.owner))))
                       : null,
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -235,7 +237,7 @@ class RoleDashboard extends StatelessWidget {
                         Icon(item.$2, size: 30, color: const Color(0xFF1F5AA6)),
                         const SizedBox(height: 12),
                         Text(item.$1, style: const TextStyle(fontWeight: FontWeight.w600)),
-                        if (item.$1 == 'Employees' && profile.role == EmployeeRole.owner || item.$1 == 'My Team' && profile.role == EmployeeRole.teamLeader) const Text('Open module', style: TextStyle(fontSize: 11, color: Color(0xFF667085))),
+                        if ((item.$1 == 'Employees' && profile.role == EmployeeRole.owner) || (item.$1 == 'My Team' && profile.role == EmployeeRole.teamLeader) || (item.$1 == 'My Profile' && (profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent))) const Text('Open module', style: TextStyle(fontSize: 11, color: Color(0xFF667085))),
                       ],
                     ),
                   ),
