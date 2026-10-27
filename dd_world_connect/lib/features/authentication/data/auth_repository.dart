@@ -57,13 +57,18 @@ class AuthRepository {
     if (session == null) throw const AuthBlockedException('Please sign in again.');
 
     final installationId = await _deviceRegistration.getInstallationId();
-    final response = await _client.functions.invoke(
-      'employee-session-bootstrap',
-      body: {
-        'installation_id': installationId,
-        'platform': _deviceRegistration.platform,
-      },
-    );
+    FunctionResponse response;
+    try {
+      response = await _client.functions.invoke(
+        'employee-session-bootstrap',
+        body: {
+          'installation_id': installationId,
+          'platform': _deviceRegistration.platform,
+        },
+      );
+    } on FunctionException catch (error) {
+      throw AuthBlockedException(_messageFromResponse(error.details));
+    }
 
     if (response.status < 200 || response.status >= 300) {
       throw AuthBlockedException(_messageFromResponse(response.data));
@@ -80,10 +85,15 @@ class AuthRepository {
     if (code.isEmpty) {
       throw const AuthInputException('Enter the employee code.');
     }
-    final response = await _client.functions.invoke(
-      'owner-reset-device',
-      body: {'employee_code': code},
-    );
+    FunctionResponse response;
+    try {
+      response = await _client.functions.invoke(
+        'owner-reset-device',
+        body: {'employee_code': code},
+      );
+    } on FunctionException catch (error) {
+      throw AuthBlockedException(_messageFromResponse(error.details));
+    }
     if (response.status < 200 || response.status >= 300) {
       throw AuthBlockedException(_messageFromResponse(response.data));
     }
