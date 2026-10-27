@@ -37,3 +37,9 @@ jobs:
         run: flutter analyze
       - name: Widget tests
         run: flutter test
+      - name: Set up Deno for Supabase Edge Functions
+        uses: denoland/setup-deno@v2
+      - name: Type-check authentication Edge Functions
+        run: |
+          deno check supabase/functions/employee-session-bootstrap/index.ts
+          deno check supabase/functions/owner-reset-device/index.ts
