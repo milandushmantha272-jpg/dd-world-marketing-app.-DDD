@@ -106,7 +106,8 @@ Deno.serve(async (request: Request) => {
     .from("role_assignments")
     .select("role")
     .eq("employee_id", employee.id)
-    .is("valid_until", null);
+    .is("valid_until", null)
+    .lte("valid_from", new Date().toISOString());
 
   if (roleError) {
     console.error("Role lookup failed", roleError.message);
