@@ -3,8 +3,8 @@
 -- This migration mirrors the minimal auth profile into public.employees and preserves
 -- the existing users, teams, attendance, sales and commission tables.
 create extension if not exists pgcrypto;
-create schema if not exists private;
-revoke all on schema private from public, anon, authenticated;
+create schema if not exists dd_connect_private;
+revoke all on schema dd_connect_private from public, anon, authenticated;
 
 create table if not exists public.employees (
   id uuid primary key,
@@ -64,7 +64,7 @@ create index if not exists dd_connect_audit_logs_actor_idx on public.audit_logs(
 
 -- Mirror employee fields from the existing source table. Phone numbers currently
 -- stored as Sri Lankan local 10-digit values are normalized to +94 E.164 form.
-create or replace function private.sync_dd_world_employee()
+create or replace function dd_connect_private.sync_dd_world_employee()
 returns trigger
 language plpgsql
 security definer
@@ -119,11 +119,11 @@ begin
 end;
 $$;
 
-revoke all on function private.sync_dd_world_employee() from public, anon, authenticated;
+revoke all on function dd_connect_private.sync_dd_world_employee() from public, anon, authenticated;
 drop trigger if exists sync_dd_world_employee_from_users on public.users;
 create trigger sync_dd_world_employee_from_users
 after insert or update on public.users
-for each row execute function private.sync_dd_world_employee();
+for each row execute function dd_connect_private.sync_dd_world_employee();
 
 -- Initial backfill. Existing duplicate phone records are intentionally preserved
 -- for investigation; the auth Edge Function rejects any phone matching >1 employee.
