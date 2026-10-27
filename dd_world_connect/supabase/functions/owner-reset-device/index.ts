@@ -37,20 +37,25 @@ Deno.serve(async (request: Request) => {
 
   const { data: actor, error: actorError } = await admin
     .from("employees")
-    .select("id,status,approved")
+    .select("id, source_user_id, auth_user_id, status, approved")
     .eq("auth_user_id", user.id)
     .maybeSingle();
-  if (actorError || !actor || actor.status !== "active" || actor.approved !== true) {
+  if (actorError || !actor || actor.auth_user_id !== user.id ||
+      actor.status !== "active" || actor.approved !== true) {
     return respond(403, { code: "OWNER_REQUIRED", error: "Only an active, approved Owner can reset device registrations." });
   }
 
-  const { data: ownerRoles, error: ownerRoleError } = await admin
-    .from("role_assignments")
-    .select("role")
-    .eq("employee_id", actor.id)
-    .is("valid_until", null)
-    .lte("valid_from", new Date().toISOString());
-  if (ownerRoleError || !ownerRoles || ownerRoles.length !== 1 || ownerRoles[0].role !== "owner") {
+  // Re-check authority against the canonical source row, not a client claim or role in metadata.
+  const { data: actorSource, error: actorSourceError } = await admin
+    .from("users")
+    .select("auth_user_id,role,status,employment_status,id_approval_status")
+    .eq("id", actor.source_user_id)
+    .maybeSingle();
+  if (actorSourceError || !actorSource || actorSource.auth_user_id !== user.id ||
+      String(actorSource.role ?? "").toLowerCase() !== "owner" ||
+      String(actorSource.status ?? "").toLowerCase() !== "active" ||
+      String(actorSource.employment_status ?? "").toUpperCase() !== "ACTIVE" ||
+      String(actorSource.id_approval_status ?? "").toUpperCase() !== "APPROVED") {
     return respond(403, { code: "OWNER_REQUIRED", error: "Only an active Owner can reset device registrations." });
   }
 
@@ -104,7 +109,6 @@ Deno.serve(async (request: Request) => {
     },
   });
   if (auditError) {
-    // Fail closed: do not report a successful administrative action without its audit record.
     console.error("Device reset audit failed", auditError.message);
     return respond(500, { code: "AUDIT_WRITE_FAILED", error: "Device was revoked but audit confirmation failed. Contact system support." });
   }
