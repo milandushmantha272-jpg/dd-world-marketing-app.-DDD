@@ -48,7 +48,8 @@ Deno.serve(async (request: Request) => {
     .from("role_assignments")
     .select("role")
     .eq("employee_id", actor.id)
-    .is("valid_until", null);
+    .is("valid_until", null)
+    .lte("valid_from", new Date().toISOString());
   if (ownerRoleError || !ownerRoles || ownerRoles.length !== 1 || ownerRoles[0].role !== "owner") {
     return respond(403, { code: "OWNER_REQUIRED", error: "Only an active Owner can reset device registrations." });
   }
