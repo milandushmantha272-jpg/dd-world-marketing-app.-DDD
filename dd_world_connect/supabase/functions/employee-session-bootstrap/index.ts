@@ -218,7 +218,13 @@ Deno.serve(async (request: Request) => {
         .eq("employee_id", employee.id)
         .eq("status", "active")
         .maybeSingle();
-      if (!racedDevice || racedDevice.device_id_hash !== deviceHash) {
+      if (!racedDevice) {
+        return respond(403, {
+          code: "DEVICE_REGISTRATION_REJECTED",
+          error: "This installation was previously revoked or could not be registered. Contact the Owner for assistance.",
+        });
+      }
+      if (racedDevice.device_id_hash !== deviceHash) {
         return respond(403, {
           code: "DEVICE_ALREADY_REGISTERED",
           error: "Another device is already registered. Ask the Owner to reset device registration.",
