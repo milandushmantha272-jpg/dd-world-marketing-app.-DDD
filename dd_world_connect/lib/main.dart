@@ -1,8 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() {
+import 'core/config/supabase_config.dart';
+import 'features/authentication/presentation/auth_gate.dart';
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const DDWorldConnectApp());
+
+  if (!SupabaseConfig.isConfigured) {
+    runApp(const ConfigurationRequiredApp());
+    return;
+  }
+
+  try {
+    await Supabase.initialize(
+      url: SupabaseConfig.url,
+      anonKey: SupabaseConfig.publishableKey,
+    );
+    runApp(const DDWorldConnectApp());
+  } catch (error, stackTrace) {
+    debugPrint('Supabase initialization failed: $error');
+    debugPrintStack(stackTrace: stackTrace);
+    runApp(const ConfigurationRequiredApp(initializationFailed: true));
+  }
 }
 
 class DDWorldConnectApp extends StatelessWidget {
@@ -38,163 +58,69 @@ class DDWorldConnectApp extends StatelessWidget {
             side: const BorderSide(color: Color(0xFFE6EAF0)),
           ),
         ),
+        inputDecorationTheme: const InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
+        ),
       ),
-      home: const FoundationScreen(),
+      home: const AuthGate(),
     );
   }
 }
 
-class FoundationScreen extends StatelessWidget {
-  const FoundationScreen({super.key});
+class ConfigurationRequiredApp extends StatelessWidget {
+  const ConfigurationRequiredApp({super.key, this.initializationFailed = false});
+  final bool initializationFailed;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('DD WORLD CONNECT'),
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 16),
-            child: Icon(Icons.business_rounded),
-          ),
-        ],
+    return MaterialApp(
+      title: 'DD WORLD CONNECT Setup',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: DDWorldConnectApp.brandBlue),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [DDWorldConnectApp.brandBlue, Color(0xFF3478C8)],
-              ),
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'DD WORLD MARKETING',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.1,
-                  ),
-                ),
-                SizedBox(height: 12),
-                Text(
-                  'Connect your team.\nTrack every activation.',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 26,
-                    height: 1.2,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 12),
-                Text(
-                  'Employee, attendance and sales management in one place.',
-                  style: TextStyle(color: Colors.white, fontSize: 14),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 22),
-          const Text(
-            'Operations',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          const Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              _FeatureTile(
-                icon: Icons.people_alt_outlined,
-                title: 'Employees',
-                subtitle: 'Role-based access',
-              ),
-              _FeatureTile(
-                icon: Icons.groups_2_outlined,
-                title: 'Teams',
-                subtitle: 'Team assignments',
-              ),
-              _FeatureTile(
-                icon: Icons.location_on_outlined,
-                title: 'Attendance',
-                subtitle: 'GPS check-in/out',
-              ),
-              _FeatureTile(
-                icon: Icons.trending_up_rounded,
-                title: 'Activations',
-                subtitle: 'Sayuru & Govimithuru',
-              ),
-              _FeatureTile(
-                icon: Icons.payments_outlined,
-                title: 'Commissions',
-                subtitle: 'Rules & approvals',
-              ),
-              _FeatureTile(
-                icon: Icons.assessment_outlined,
-                title: 'Reports',
-                subtitle: 'Daily & monthly',
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          const Card(
+      home: Scaffold(
+        body: SafeArea(
+          child: Center(
             child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.info_outline, color: DDWorldConnectApp.brandBlue),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Foundation preview. Authentication, live database access, role-specific navigation and business workflows must be connected and tested before operational use.',
+              padding: const EdgeInsets.all(28),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.settings_suggest_outlined, size: 58, color: DDWorldConnectApp.brandBlue),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'DD WORLD CONNECT',
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    Text(
+                      initializationFailed
+                          ? 'Supabase could not be initialized. Verify the project URL, publishable key, and network connection.'
+                          : 'Supabase configuration is required before login can be used.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(height: 1.5),
+                    ),
+                    const SizedBox(height: 18),
+                    const SelectableText(
+                      'Build with --dart-define=SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co '
+                      '--dart-define=SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Use only the Supabase publishable key in the mobile app. Never include a service-role or secret key.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Color(0xFF667085), fontSize: 12, height: 1.5),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FeatureTile extends StatelessWidget {
-  const _FeatureTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 158,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(15),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, color: DDWorldConnectApp.brandBlue, size: 28),
-              const SizedBox(height: 14),
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: const TextStyle(color: Color(0xFF667085), fontSize: 12),
-              ),
-            ],
           ),
         ),
       ),
