@@ -24,12 +24,13 @@ See [authentication setup](docs/authentication-setup.md) for migration order, Su
 
 ## Setup
 1. Install the current stable Flutter SDK and Android toolchain.
-2. Apply the migrations in `supabase/migrations/` to a development Supabase project in filename order.
-3. Enable Supabase Phone Auth and configure an SMS provider.
-4. Deploy `employee-session-bootstrap` and `owner-reset-device` Edge Functions with JWT verification enabled.
-5. Configure the functions' server-side Supabase environment. Never put the service-role key in Flutter or source control.
-6. Run `flutter pub get`, `flutter analyze`, and `flutter test` from this directory.
-7. Build with the Supabase URL and publishable key supplied via `--dart-define`.
+2. Review and apply `supabase/migrations/202610270001_authentication_bridge.sql` to a development copy of the existing DD WORLD Supabase project. Do not apply `docs/reference/greenfield-schema.sql` to the existing project.
+3. Resolve the existing duplicate normalized phone assignment for employee codes 9183 and 9293 before those employees use OTP.
+4. Enable Supabase Phone Auth and configure an SMS provider.
+5. Deploy `employee-session-bootstrap` and `owner-reset-device` Edge Functions with JWT verification enabled.
+6. Configure the functions' server-side Supabase environment. Never put the service-role key in Flutter or source control.
+7. Run `flutter pub get`, `flutter analyze`, and `flutter test` from this directory.
+8. Build with the Supabase URL and publishable key supplied via `--dart-define`.
 
 Example:
 ```sh
