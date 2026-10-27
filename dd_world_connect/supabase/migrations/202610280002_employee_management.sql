@@ -261,7 +261,7 @@ for select to authenticated using (
     public.dd_connect_is_owner()
     or exists (
       select 1 from public.users target
-      where name = split_part(storage.objects.name,'/',1)
+      where target.id::text = split_part(storage.objects.name,'/',1)
         and public.dd_connect_can_view_employee(target.id)
     )
   )
