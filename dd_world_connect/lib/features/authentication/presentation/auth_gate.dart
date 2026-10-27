@@ -15,7 +15,7 @@ class AuthGate extends StatefulWidget {
   State<AuthGate> createState() => _AuthGateState();
 }
 
-class _AuthGateState extends State<AuthGate> {
+class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   final _repository = AuthRepository();
   StreamSubscription<AuthState>? _subscription;
   Future<EmployeeProfile>? _profileFuture;
@@ -25,6 +25,7 @@ class _AuthGateState extends State<AuthGate> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _subscription = Supabase.instance.client.auth.onAuthStateChange.listen(
       (event) => _handleSession(event.session),
     );
@@ -60,7 +61,22 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session == null || !mounted) return;
+    // Re-check employee approval and active-device registration when returning
+    // to the foreground, so a revoked device is not left on an authorized screen.
+    setState(() {
+      _sessionUserId = session.user.id;
+      _blockedMessage = null;
+      _profileFuture = _loadAuthorizedProfile();
+    });
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _subscription?.cancel();
     super.dispose();
   }
