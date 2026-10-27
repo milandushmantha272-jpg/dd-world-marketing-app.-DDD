@@ -311,7 +311,7 @@ class _OwnerDeviceResetScreenState extends State<OwnerDeviceResetScreen> {
             textCapitalization: TextCapitalization.characters,
             decoration: const InputDecoration(
               labelText: 'Employee code',
-              hintText: 'e.g. DD-0037',
+              hintText: 'e.g. 9183',
               border: OutlineInputBorder(),
             ),
           ),
