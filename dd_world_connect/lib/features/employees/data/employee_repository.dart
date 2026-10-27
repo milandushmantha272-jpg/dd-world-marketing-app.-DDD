@@ -14,9 +14,9 @@ class EmployeeRepository {
     final term = search.trim().replaceAll(',', ' ');
     if (term.isNotEmpty) query = query.or('name.ilike.%$term%,agent_code.ilike.%$term%,phone.ilike.%$term%');
     final rows = await query.order('name');
-    return rows.map((r) => Employee.fromJson(Map<String,dynamic>.from(r))).toList();
+    final employees = <Employee>[];\n    for (final row in rows) { employees.add(Employee.fromJson(await _signedPhoto(Map<String,dynamic>.from(row)))); }\n    return employees;
   }
-  Future<Employee> getById(String id) async => Employee.fromJson(Map<String,dynamic>.from(await _client.from('users').select(_selection).eq('id', id).single()));
+  Future<Employee> getById(String id) async => Employee.fromJson(await _signedPhoto(Map<String,dynamic>.from(await _client.from('users').select(_selection).eq('id', id).single())));
   Future<List<EmployeeTeam>> teams() async => (await _client.from('teams').select('id,name,leader_id').order('name')).map((r) => EmployeeTeam.fromJson(Map<String,dynamic>.from(r))).toList();
 
   Future<void> create({required String code, required String name, required String phone, required EmployeeRole role, required EmployeeStatus status, required String? teamId, String? nic, String? address, DateTime? dob, DateTime? joinDate}) async {
@@ -46,6 +46,6 @@ class EmployeeRepository {
     final result = <Map<String,dynamic>>[for(final r in rows[0]) {'kind':'Status',...Map<String,dynamic>.from(r)},for(final r in rows[1]) {'kind':'Transfer',...Map<String,dynamic>.from(r)},for(final r in rows[2]) {'kind':'Approval',...Map<String,dynamic>.from(r)}];
     result.sort((a,b)=>(b['changed_at']??b['transferred_at']??b['created_at']??'').toString().compareTo((a['changed_at']??a['transferred_at']??a['created_at']??'').toString())); return result;
   }
-  Future<String> uploadPhoto(String employeeId, String fileName, Uint8List bytes, String contentType) async {\n    final path = '$employeeId/${DateTime.now().millisecondsSinceEpoch}_${fileName.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_')}';\n    await _client.storage.from('employee-profile-photos').uploadBinary(path, bytes, fileOptions: FileOptions(contentType: contentType, upsert: false));\n    final signed = await _client.storage.from('employee-profile-photos').createSignedUrl(path, 604800);\n    await _client.from('employee_profiles').upsert({'user_id':employeeId,'profile_photo_url':signed,'updated_by':_client.auth.currentUser?.id});\n    return signed;\n  }\n  String? _clean(String? value) => value == null || value.trim().isEmpty ? null : value.trim();
+  Future<String> uploadPhoto(String employeeId, String fileName, Uint8List bytes, String contentType) async {\n    final path = '$employeeId/${DateTime.now().millisecondsSinceEpoch}_${fileName.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_')}';\n    await _client.storage.from('employee-profile-photos').uploadBinary(path, bytes, fileOptions: FileOptions(contentType: contentType, upsert: false));\n    await _client.from('employee_profiles').upsert({'user_id':employeeId,'profile_photo_url':path,'updated_by':_client.auth.currentUser?.id});\n    return path;\n  }\n  Future<Map<String,dynamic>> _signedPhoto(Map<String,dynamic> json) async {\n    final raw = json['employee_profiles'];\n    if (raw is Map) { final profile = Map<String,dynamic>.from(raw); final path = profile['profile_photo_url']?.toString(); if (path != null && path.isNotEmpty && !path.startsWith('http')) { try { profile['profile_photo_url'] = await _client.storage.from('employee-profile-photos').createSignedUrl(path, 604800); } catch (_) { profile['profile_photo_url'] = null; } } json['employee_profiles'] = profile; }\n    return json;\n  }\n  String? _clean(String? value) => value == null || value.trim().isEmpty ? null : value.trim();
   String? _date(DateTime? value) => value == null ? null : '${value.year.toString().padLeft(4,'0')}-${value.month.toString().padLeft(2,'0')}-${value.day.toString().padLeft(2,'0')}';
 }
