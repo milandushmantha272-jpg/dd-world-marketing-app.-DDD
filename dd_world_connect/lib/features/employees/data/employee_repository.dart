@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/employee.dart';
 
@@ -45,6 +46,6 @@ class EmployeeRepository {
     final result = <Map<String,dynamic>>[for(final r in rows[0]) {'kind':'Status',...Map<String,dynamic>.from(r)},for(final r in rows[1]) {'kind':'Transfer',...Map<String,dynamic>.from(r)},for(final r in rows[2]) {'kind':'Approval',...Map<String,dynamic>.from(r)}];
     result.sort((a,b)=>(b['changed_at']??b['transferred_at']??b['created_at']??'').toString().compareTo((a['changed_at']??a['transferred_at']??a['created_at']??'').toString())); return result;
   }
-  String? _clean(String? value) => value == null || value.trim().isEmpty ? null : value.trim();
+  Future<String> uploadPhoto(String employeeId, String fileName, Uint8List bytes, String contentType) async {\n    final path = '$employeeId/${DateTime.now().millisecondsSinceEpoch}_${fileName.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_')}';\n    await _client.storage.from('employee-profile-photos').uploadBinary(path, bytes, fileOptions: FileOptions(contentType: contentType, upsert: false));\n    final signed = await _client.storage.from('employee-profile-photos').createSignedUrl(path, 604800);\n    await _client.from('employee_profiles').upsert({'user_id':employeeId,'profile_photo_url':signed,'updated_by':_client.auth.currentUser?.id});\n    return signed;\n  }\n  String? _clean(String? value) => value == null || value.trim().isEmpty ? null : value.trim();
   String? _date(DateTime? value) => value == null ? null : '${value.year.toString().padLeft(4,'0')}-${value.month.toString().padLeft(2,'0')}-${value.day.toString().padLeft(2,'0')}';
 }
