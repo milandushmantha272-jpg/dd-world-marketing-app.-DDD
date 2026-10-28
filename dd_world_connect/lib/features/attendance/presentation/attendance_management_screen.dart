@@ -216,7 +216,7 @@ class _AttendanceManagementScreenState extends ConsumerState<AttendanceManagemen
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     DropdownButtonFormField<String>(
-                      value: type,
+                      initialValue: type,
                       decoration: const InputDecoration(labelText: 'Type'),
                       items: const [
                         DropdownMenuItem(value: 'LEAVE', child: Text('Leave')),
