@@ -199,15 +199,125 @@ class _AttendanceManagementScreenState extends ConsumerState<AttendanceManagemen
   }
 
   Future<void> _submitLeave() async {
-    final reason=TextEditingController();var type='LEAVE';var start=DateTime.now();var end=DateTime.now();
-    final accepted=await showDialog<bool>(context:context,builder:(context)=>StatefulBuilder(builder:(context,setDialog)=>AlertDialog(title:const Text('Leave Request'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
-      DropdownButtonFormField<String>(initialValue:type,decoration:const InputDecoration(labelText:'Type'),items:const [DropdownMenuItem(value:'LEAVE',child:Text('Leave')),DropdownMenuItem(value:'HALF_DAY',child:Text('Half Day'))],onChanged:(v)=>setDialog(()=>type=v??'LEAVE')),
-      ListTile(title:Text('Start: ${start.toIso8601String().substring(0,10)}'),trailing:const Icon(Icons.calendar_today),onTap:()async{final d=await showDatePicker(context:context,initialDate:start,firstDate:DateTime.now().subtract(const Duration(days:365)),lastDate:DateTime.now().add(const Duration(days:365)));if(d!=null)setDialog(()=>start=d);}),
-      ListTile(title:Text('End: ${end.toIso8601String().substring(0,10)}'),trailing:const Icon(Icons.calendar_today),onTap:()async{final d=await showDatePicker(context:context,initialDate:end,firstDate:start,lastDate:DateTime.now().add(const Duration(days:365)));if(d!=null)setDialog(()=>end=d);}),
-      TextField(controller:reason,minLines:2,maxLines:3,decoration:const InputDecoration(labelText:'Reason (required)',border:OutlineInputBorder())),
-    ])),actions:[TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('Submit'))]));
-    if(accepted!=true)return;
-    try{await ref.read(attendanceServiceProvider).submitLeave(type:type,start:start,end:end,reason:reason.text);ref.invalidate(leaveRequestsProvider);if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Leave request submitted.')));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(_friendly(e))));}
+    final reason = TextEditingController();
+    var type = 'LEAVE';
+    var start = DateTime.now();
+    var end = DateTime.now();
+
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            return AlertDialog(
+              title: const Text('Leave Request'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      value: type,
+                      decoration: const InputDecoration(labelText: 'Type'),
+                      items: const [
+                        DropdownMenuItem(value: 'LEAVE', child: Text('Leave')),
+                        DropdownMenuItem(value: 'HALF_DAY', child: Text('Half Day')),
+                      ],
+                      onChanged: (value) {
+                        setDialogState(() {
+                          type = value ?? 'LEAVE';
+                        });
+                      },
+                    ),
+                    ListTile(
+                      title: Text('Start: ${start.toIso8601String().substring(0, 10)}'),
+                      trailing: const Icon(Icons.calendar_today),
+                      onTap: () async {
+                        final selected = await showDatePicker(
+                          context: dialogContext,
+                          initialDate: start,
+                          firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                        );
+                        if (selected != null) {
+                          setDialogState(() {
+                            start = selected;
+                            if (end.isBefore(start)) end = start;
+                          });
+                        }
+                      },
+                    ),
+                    ListTile(
+                      title: Text('End: ${end.toIso8601String().substring(0, 10)}'),
+                      trailing: const Icon(Icons.calendar_today),
+                      onTap: () async {
+                        final selected = await showDatePicker(
+                          context: dialogContext,
+                          initialDate: end.isBefore(start) ? start : end,
+                          firstDate: start,
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                        );
+                        if (selected != null) {
+                          setDialogState(() {
+                            end = selected;
+                          });
+                        }
+                      },
+                    ),
+                    TextField(
+                      controller: reason,
+                      minLines: 2,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: 'Reason (required)',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: const Text('Submit'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (accepted != true) {
+      reason.dispose();
+      return;
+    }
+
+    try {
+      await ref.read(attendanceServiceProvider).submitLeave(
+        type: type,
+        start: start,
+        end: end,
+        reason: reason.text,
+      );
+      ref.invalidate(leaveRequestsProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Leave request submitted.')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_friendly(error))),
+        );
+      }
+    } finally {
+      reason.dispose();
+    }
   }
 
   Future<void> _reviewLeave(Map<String,dynamic> row) async {
