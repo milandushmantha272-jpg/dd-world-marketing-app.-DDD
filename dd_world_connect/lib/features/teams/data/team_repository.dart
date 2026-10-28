@@ -105,7 +105,7 @@ class TeamRepository {
     final people=await members(team.id);
     final ids=people.map((p)=>p['id'].toString()).toList();
     if(ids.isEmpty) return team.withStatistics(activations:0,quantity:0,amount:0,present:0,attendance:0);
-    final sales=await _client.from('sales').select('id,quantity,amount,verification_status,sale_date').eq('team_id',team.id).gte('sale_date',start).lte('sale_date',end);
+    final sales=await _client.from('sales').select('id,quantity,amount,verification_status,sale_date').inFilter('agent_id',ids).gte('sale_date',start).lte('sale_date',end);
     final attendance=await _client.from('attendance').select('id,user_id,status,date').inFilter('user_id',ids).gte('date',start).lte('date',end);
     var quantity=0; num amount=0; var activations=0; var present=0;
     for(final row in sales){
