@@ -4,6 +4,9 @@ create table if not exists public.activations (
   id uuid primary key default gen_random_uuid(),
   employee_id uuid not null references public.users(id) on delete restrict,
   team_id uuid references public.teams(id) on delete set null,
+  employee_name text not null default '',
+  employee_code text not null default '',
+  team_name text,
   activation_type text not null check (activation_type in ('sayuru','govimithuru')),
   gps_latitude double precision not null check (gps_latitude between -90 and 90),
   gps_longitude double precision not null check (gps_longitude between -180 and 180),
@@ -104,6 +107,9 @@ begin
   if actor.id is null then raise exception 'Active approved employee session required'; end if;
   if new.employee_id <> actor.id then raise exception 'Employees may only record their own activations'; end if;
   new.team_id := actor.team_id;
+  new.employee_name := actor.name;
+  new.employee_code := actor.agent_code;
+  select t.name into new.team_name from public.teams t where t.id=actor.team_id;
   new.created_by_auth_uid := auth.uid();
   new.created_at := now();
   new.status := 'recorded';
@@ -151,16 +157,12 @@ as $$
 begin
   insert into public.activation_logs(activation_id, actor_user_id, event_type, details)
   values (new.id, new.employee_id, 'recorded', jsonb_build_object('activation_type',new.activation_type,'team_id',new.team_id));
-  insert into public.activation_statistics(statistic_date, team_id, activation_type, activation_count, updated_at)
-  values ((new.created_at at time zone 'Asia/Colombo')::date, new.team_id, new.activation_type, 1, now());
-  if new.team_id is null then
-    update public.activation_statistics set activation_count=activation_count+1, updated_at=now()
-      where statistic_date=(new.created_at at time zone 'Asia/Colombo')::date and team_id is null and activation_type=new.activation_type;
-    if not found then
-      insert into public.activation_statistics(statistic_date,team_id,activation_type,activation_count,updated_at)
-      values ((new.created_at at time zone 'Asia/Colombo')::date,null,new.activation_type,1,now())
-      on conflict do nothing;
-    end if;
+  update public.activation_statistics set activation_count=activation_count+1, updated_at=now()
+    where statistic_date=(new.created_at at time zone 'Asia/Colombo')::date
+      and team_id is not distinct from new.team_id and activation_type=new.activation_type;
+  if not found then
+    insert into public.activation_statistics(statistic_date,team_id,activation_type,activation_count,updated_at)
+    values ((new.created_at at time zone 'Asia/Colombo')::date,new.team_id,new.activation_type,1,now());
   end if;
   return new;
 end
@@ -171,10 +173,8 @@ create trigger activations_after_insert after insert on public.activations
 for each row execute function dd_connect_private.log_activation_insert();
 
 create or replace view public.activation_center_employee_view with (security_invoker = true) as
-select a.id, a.employee_id, u.name as employee_name, u.agent_code as employee_code,
-       a.team_id, t.name as team_name, a.activation_type, a.gps_latitude, a.gps_longitude,
+select a.id, a.employee_id, a.employee_name, a.employee_code,
+       a.team_id, a.team_name, a.activation_type, a.gps_latitude, a.gps_longitude,
        a.status, a.created_at
-from public.activations a
-join public.users u on u.id=a.employee_id
-left join public.teams t on t.id=a.team_id;
+from public.activations a;
 grant select on public.activation_center_employee_view to authenticated;
