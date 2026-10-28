@@ -178,7 +178,7 @@ begin
   end if;
   if old.leader_id is distinct from new.leader_id then
     insert into public.team_leader_history(team_id,previous_leader_id,new_leader_id,changed_by)
-    values(new.id,old.leader_id,new.leader_id,actor_id);
+    values(new.id,old.leader_id,new.leader_id,coalesce(nullif(current_setting('dd_connect.team_leader_reason',true),''),'Team leader assignment changed'),actor_id);
     insert into public.team_audit_logs(team_id,actor_user_id,event_type,target_user_id,metadata)
     values(new.id,actor_id,'TEAM_LEADER_CHANGED',new.leader_id,
       jsonb_build_object('previous_leader_id',old.leader_id,'new_leader_id',new.leader_id));
@@ -223,6 +223,7 @@ begin
     select 1 from public.teams t where t.leader_id=p_leader_id and t.id<>p_team_id
   ) then raise exception 'This employee already leads another team'; end if;
 
+  perform set_config('dd_connect.team_leader_reason',btrim(p_reason),true);
   update public.teams set leader_id=p_leader_id where id=p_team_id;
   if previous_id is not null and previous_id is distinct from p_leader_id then
     update public.users set role='agent'
@@ -232,8 +233,6 @@ begin
     update public.users set role='team_leader',team_id=p_team_id
       where id=p_leader_id;
   end if;
-  insert into public.team_leader_history(team_id,previous_leader_id,new_leader_id,reason,changed_by)
-  values(p_team_id,previous_id,p_leader_id,btrim(p_reason),actor_id);
   insert into public.team_audit_logs(team_id,actor_user_id,event_type,target_user_id,metadata)
   values(p_team_id,actor_id,case when p_leader_id is null then 'TEAM_LEADER_REMOVED' else 'TEAM_LEADER_APPOINTED' end,
     p_leader_id,jsonb_build_object('previous_leader_id',previous_id,'new_leader_id',p_leader_id,'reason',btrim(p_reason)));
