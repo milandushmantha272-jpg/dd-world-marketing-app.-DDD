@@ -1,4 +1,4 @@
-name: DD WORLD CONNECT Build Verification
+name: DD WORLD CONNECT Final Android Build Verification
 
 on:
   push:
@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   verify-flutter:
-    name: Flutter analyze, tests and debug APK
+    name: Flutter analysis, tests, debug and release APK
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -43,12 +43,58 @@ jobs:
         run: flutter test
 
       - name: flutter build apk --debug
-        run: flutter build apk --debug
+        shell: bash
+        run: |
+          start=$(date +%s)
+          flutter build apk --debug
+          end=$(date +%s)
+          echo "DEBUG_BUILD_SECONDS=$((end-start))" >> "$GITHUB_ENV"
+          test -s build/app/outputs/flutter-apk/app-debug.apk
+          ls -lh build/app/outputs/flutter-apk/app-debug.apk
+
+      - name: flutter build apk --release
+        shell: bash
+        run: |
+          start=$(date +%s)
+          flutter build apk --release
+          end=$(date +%s)
+          echo "RELEASE_BUILD_SECONDS=$((end-start))" >> "$GITHUB_ENV"
+          test -s build/app/outputs/flutter-apk/app-release.apk
+          ls -lh build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Summarize APK artifacts
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## DD WORLD CONNECT Android build results"
+            echo
+            for apk in build/app/outputs/flutter-apk/app-debug.apk build/app/outputs/flutter-apk/app-release.apk; do
+              if [ -s "$apk" ]; then
+                size=$(du -h "$apk" | cut -f1)
+                bytes=$(stat -c%s "$apk")
+                echo "- **$(basename "$apk")**: PASS — $size ($bytes bytes)"
+              else
+                echo "- **$(basename "$apk")**: FAIL — artifact missing"
+              fi
+            done
+            echo
+            echo "- Debug build duration: ${DEBUG_BUILD_SECONDS:-not completed} seconds"
+            echo "- Release build duration: ${RELEASE_BUILD_SECONDS:-not completed} seconds"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: dd-world-connect-debug-apk
           path: dd_world_connect/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: dd-world-connect-release-apk
+          path: dd_world_connect/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
           retention-days: 7
