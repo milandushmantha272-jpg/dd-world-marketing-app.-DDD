@@ -31,6 +31,24 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Restore missing Flutter Android platform
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -f android/app/build.gradle && ! -f android/app/build.gradle.kts ]]; then
+            echo "Flutter Android platform is missing in dd_world_connect; generating Android scaffold without touching lib/ or pubspec.yaml."
+            flutter create --platforms=android --org com.ddworld.marketing --project-name dd_world_connect .
+          fi
+          test -d android
+          test -d android/app
+          test -d android/app/src/main
+          test -f android/app/src/main/AndroidManifest.xml
+          test -f android/settings.gradle || test -f android/settings.gradle.kts
+          test -f android/gradle.properties
+          test -f android/app/build.gradle || test -f android/app/build.gradle.kts
+          echo "Verified Flutter Android platform files:"
+          find android -maxdepth 4 -type f | sort | head -100
+
       - name: flutter pub get
         run: flutter pub get
 
