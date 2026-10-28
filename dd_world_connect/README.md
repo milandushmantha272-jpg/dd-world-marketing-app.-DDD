@@ -70,8 +70,9 @@ Apply in order after the employee management migrations:
 - `202610280006_team_transfer_rpc.sql` — adds an Owner-authorized transactional employee-transfer RPC that preserves the supplied reason in audit history.
 - `202610280007_team_rpc_security_and_indexes.sql` — makes public RPC entry points SECURITY INVOKER and adds indexes for audit foreign keys.
 - `202610280008_scope_team_history_reads.sql` — limits member enumeration and team history to Owner/Team Leader, with Agents seeing only their assigned team and own membership.
+- `202610280009_reconcile_team_leaders.sql` — repairs stale legacy leader IDs, connects the four existing approved Team Leaders to their matching teams, and validates the team foreign keys.
 
-All four Team Management migrations have been applied to the connected Supabase project and the new tables were verified with RLS enabled. The migration also reconciled four known legacy synthetic roster team IDs to the matching canonical teams (Nethsara, Dilan, Dilshan and Buddhika) so existing employee assignments and team-scoped sales/messages remain consistent. It did not remove employees.
+All five Team Management migrations have been applied to the connected Supabase project and the new tables were verified with RLS enabled. The four existing team leaders are now correctly linked to Buddika, Dilan, Dilshan and Nethsara teams. The migration also reconciled four known legacy synthetic roster team IDs to the matching canonical teams (Nethsara, Dilan, Dilshan and Buddhika) so existing employee assignments and team-scoped sales/messages remain consistent. It did not remove employees.
 
 Flutter unit tests for team status/model mapping are in `test/features/teams/team_test.dart`. A fresh Flutter analyze/test/Android build and real-device OTP/role testing are still required; no CI pass or production release is claimed.
 
