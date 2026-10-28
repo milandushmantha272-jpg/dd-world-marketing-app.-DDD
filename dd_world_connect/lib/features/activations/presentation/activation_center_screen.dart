@@ -12,13 +12,13 @@ class ActivationCenterScreen extends ConsumerStatefulWidget {
 class _ActivationCenterScreenState extends ConsumerState<ActivationCenterScreen>{
   bool _saving=false,_error=false; String? _message;
   Future<void> _activate(ActivationType type) async {
-    setState(()=>{_saving=true,_message=null,_error=false});
+    setState(() { _saving=true; _message=null; _error=false; });
     try{
       final record=await ActivationController(ref.read(activationRepositoryProvider)).recordAndLaunch(employee:widget.profile,type:type);
       ref.invalidate(activationHistoryProvider);ref.invalidate(activationStatisticsProvider);
       if(mounted)setState(()=>_message='${type.displayName} record saved at ${record.createdAt}. Complete the USSD flow in the Phone app.');
-    }catch(e){if(mounted)setState(()=>{_error=true,_message=e.toString().replaceFirst('Exception: ','')});}
-    finally{if(mounted)setState(()=>_saving=false);}
+    }catch(e){if(mounted)setState(() { _error=true; _message=e.toString().replaceFirst('Exception: ',''); });}
+    finally{if(mounted)setState(() { _saving=false; });}
   }
   @override Widget build(BuildContext context)=>Scaffold(
     appBar:AppBar(title:const Text('Activation Center')),
