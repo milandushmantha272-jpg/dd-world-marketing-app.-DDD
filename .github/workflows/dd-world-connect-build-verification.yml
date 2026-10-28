@@ -8,8 +8,6 @@ on:
       - 'dd_world_connect/**'
       - '.github/workflows/dd-world-connect-build-verification.yml'
   pull_request:
-    branches:
-      - feature/dd-world-connect-foundation
     paths:
       - 'dd_world_connect/**'
       - '.github/workflows/dd-world-connect-build-verification.yml'
