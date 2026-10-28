@@ -3,14 +3,12 @@ name: DD WORLD CONNECT Final Android Build Verification
 on:
   push:
     branches:
+      - main
       - feature/dd-world-connect-foundation
-    paths:
-      - 'dd_world_connect/**'
-      - '.github/workflows/dd-world-connect-build-verification.yml'
   pull_request:
-    paths:
-      - 'dd_world_connect/**'
-      - '.github/workflows/dd-world-connect-build-verification.yml'
+    branches:
+      - main
+      - feature/dd-world-connect-foundation
   workflow_dispatch:
 
 permissions:
@@ -84,6 +82,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload debug APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: dd-world-connect-debug-apk
@@ -92,6 +91,7 @@ jobs:
           retention-days: 7
 
       - name: Upload release APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: dd-world-connect-release-apk
