@@ -74,21 +74,13 @@ class TeamRepository {
   }
 
   Future<void> transferEmployee({required String employeeId,required String? destinationTeamId,required String reason}) async {
-    final employee = await _client.from('users').select('id,team_id,reports_to_user_id,role').eq('id',employeeId).single();
-    final oldTeamId = employee['team_id']?.toString();
-    await _client.from('users').update({
-      'team_id':destinationTeamId,
-      'reports_to_user_id':null,
-      if (employee['role'] == 'team_leader') 'role':'agent',
-    }).eq('id',employeeId);
-    // The database trigger records the transfer atomically with the canonical team_id update.
-    // Record the operator's explicit reason in a second, auditable event.
-    await _client.from('team_audit_logs').insert({
-      'team_id':destinationTeamId ?? oldTeamId,
-      'actor_user_id':_client.auth.currentUser?.id,
-      'event_type':'EMPLOYEE_TRANSFER_REASON',
-      'target_user_id':employeeId,
-      'metadata':{'previous_team_id':oldTeamId,'new_team_id':destinationTeamId,'reason':reason.trim()},
+    if (destinationTeamId == null) {
+      throw const PostgrestException(message:'Select a destination team.');
+    }
+    await _client.rpc('owner_transfer_employee',params:{
+      'p_employee_id':employeeId,
+      'p_destination_team_id':destinationTeamId,
+      'p_reason':reason.trim(),
     });
   }
 
