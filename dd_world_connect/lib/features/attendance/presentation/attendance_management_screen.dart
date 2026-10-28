@@ -96,10 +96,43 @@ class _AttendanceManagementScreenState extends ConsumerState<AttendanceManagemen
           if(checkedOut) const Padding(padding:EdgeInsets.only(top:8),child:Text('Attendance complete for today.',style:TextStyle(color:Colors.green))),
         ])));
       }),
+      if(_isOwner) _ownerLivePanel(),
       if(_message!=null) Padding(padding:const EdgeInsets.only(top:8),child:Text(_message!,style:TextStyle(color:_message!.contains('successfully')?Colors.green:Theme.of(context).colorScheme.error))),
       const SizedBox(height:8),
       const Text('GPS permission and device location must be enabled. Attendance captures coordinates and reported GPS accuracy.',style:TextStyle(fontSize:12,color:Colors.black54)),
     ]));
+  }
+
+
+  Widget _ownerLivePanel() {
+    final result = ref.watch(teamAttendanceTodayProvider);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Owner Live Attendance', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 6),
+          const Text('Latest attendance records visible under Owner access. Pull down or refresh to update.', style: TextStyle(fontSize: 12, color: Colors.black54)),
+          result.when(
+            loading: () => const Padding(padding: EdgeInsets.all(12), child: Center(child: CircularProgressIndicator())),
+            error: (e, _) => Text(_friendly(e)),
+            data: (rows) => rows.isEmpty
+                ? const Padding(padding: EdgeInsets.all(12), child: Text('No attendance records recorded today.'))
+                : Column(children: rows.take(12).map((row) {
+                    final record = AttendanceRecord.fromJson(row);
+                    return ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(record.checkOutTime == null ? Icons.location_on : Icons.task_alt, color: _attendanceBlue),
+                      title: Text(record.employeeName ?? 'Employee'),
+                      subtitle: Text('${record.teamName ?? 'No team'} • In ${_time(record.checkInTime)} • Out ${_time(record.checkOutTime)}'),
+                      trailing: Text(record.status.label),
+                    );
+                  }).toList()),
+          ),
+        ]),
+      ),
+    );
   }
 
   Widget _history() {
