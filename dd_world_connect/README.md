@@ -13,6 +13,12 @@ Enterprise employee and sales management platform for **DD WORLD MARKETING** (te
 - Agent: own records and authorized submissions
 - Direct Agent: own records, reporting directly to Owner
 
+## Attendance and GPS implementation
+- The Attendance workspace is connected to the authenticated employee profile and supports GPS check-in/check-out, same-day duplicate prevention, attendance history, monthly status counts, team attendance, GPS coordinate review, and leave/half-day requests.
+- Location is requested only when the employee taps check-in or check-out. The app rejects denied permissions, disabled location services, and reported GPS accuracy worse than 150 metres.
+- Attendance uses the existing `public.attendance` table. Migrations `202610280011_attendance_gps.sql` and `202610280012_attendance_employee_relation.sql` add GPS fields, the event log and leave-request tables, indexes, foreign keys, and role-scoped RLS. Legacy attendance rows with a missing employee reference are preserved; the new FK is deliberately NOT VALID until historical data is reconciled.
+- Run `flutter pub get`, `flutter analyze`, and `flutter test` before building. Android runtime GPS permission prompts and real-device location accuracy still require device verification.
+
 ## Authentication implementation
 The app uses mobile-number SMS OTP only. There is no username/password login screen or password authentication repository.
 
