@@ -28,3 +28,7 @@ class ActivationController {
     return Geolocator.getCurrentPosition(locationSettings:const LocationSettings(accuracy:LocationAccuracy.high,timeLimit:Duration(seconds:20)));
   }
 }
+final activationTeamStatisticsProvider = FutureProvider.autoDispose<List<Map<String,dynamic>>>((ref) async {
+  final rows = await ref.watch(activationRepositoryProvider).teamStatistics();
+  return rows;
+});
