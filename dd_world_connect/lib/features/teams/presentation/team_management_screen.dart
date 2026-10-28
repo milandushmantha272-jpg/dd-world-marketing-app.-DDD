@@ -47,7 +47,7 @@ class TeamManagementScreen extends ConsumerWidget {
                 margin: const EdgeInsets.only(bottom: 10), clipBehavior: Clip.antiAlias,
                 child: ListTile(
                   title: Text(team.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                  subtitle: Padding(padding: const EdgeInsets.only(top: 6), child: Text('${team.code} • ${team.employeeCount} members\nLeader: ${team.leaderName ?? 'Not appointed'}')),
+                  subtitle: Padding(padding: const EdgeInsets.only(top: 6), child: Text(role == EmployeeRole.agent ? '${team.code} • Assigned team\nLeader: ${team.leaderName ?? 'Not appointed'}' : '${team.code} • ${team.employeeCount} members\nLeader: ${team.leaderName ?? 'Not appointed'}')),
                   isThreeLine: true, trailing: _StatusChip(team.status),
                   onTap: () async { await Navigator.push<void>(context, MaterialPageRoute(builder: (_) => TeamDetailsScreen(teamId: team.id, role: role))); ref.invalidate(teamsProvider); },
                 ),
@@ -80,7 +80,7 @@ class TeamDetailsScreen extends ConsumerWidget {
           const SizedBox(height: 8), Text('Created: ${_date(team.createdAt)}'),
           if ((team.description ?? '').trim().isNotEmpty) ...[const SizedBox(height: 8), Text(team.description!)],
           const Divider(height: 26),
-          Row(children: [Expanded(child: _Metric('Employees', '${team.employeeCount}', Icons.people_alt_outlined)), Expanded(child: _Metric('Status', team.status.label, Icons.flag_outlined))]),
+          if (role == EmployeeRole.agent) Text('Access: Assigned team only', style: const TextStyle(color: Colors.black54)) else Row(children: [Expanded(child: _Metric('Employees', '${team.employeeCount}', Icons.people_alt_outlined)), Expanded(child: _Metric('Status', team.status.label, Icons.flag_outlined))]),
         ]))),
         if (isOwner) ...[
           _ActionTile(Icons.edit_outlined, 'Edit Team', 'Update team name, code, status and description', () async { final ok = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => TeamFormScreen(team: team))); if (ok == true) { ref.invalidate(teamDetailsProvider(teamId)); ref.invalidate(teamsProvider); } }),
