@@ -15,6 +15,50 @@ alter table public.teams
   add constraint teams_status_check check (status in ('ACTIVE','INACTIVE','ARCHIVED'));
 create unique index if not exists teams_team_code_unique_idx
   on public.teams (upper(btrim(team_code)));
+-- Legacy roster rows used four synthetic UUIDs that do not match the canonical
+-- public.teams IDs. Resolve those IDs by the existing roster's Team Leader/name
+-- before adding foreign keys; preserve sales and team-targeted message history.
+-- Disable only the existing employee audit trigger during this one-time ID
+-- normalization because its historical FK cannot point to the synthetic IDs.
+alter table public.users disable trigger dd_connect_employee_audit;
+with legacy_map(old_id,new_id) as (
+  values
+    ('aaaaaaaa-bbbb-cccc-dddd-000000000001'::uuid,'01172836-2c0b-4b24-997f-8858729e8b78'::uuid), -- Nethsara
+    ('aaaaaaaa-bbbb-cccc-dddd-000000000002'::uuid,'da468796-f2f9-4a5b-9779-787cb0671e86'::uuid), -- Dilan / P.A. Dayan Upindu
+    ('aaaaaaaa-bbbb-cccc-dddd-000000000003'::uuid,'e4d3f0ef-12fb-48b9-b268-c568ec153441'::uuid), -- Dilshan / Ishara Dilshan
+    ('aaaaaaaa-bbbb-cccc-dddd-000000000004'::uuid,'732a9d4f-3940-47d8-aaa8-a5812d1183ff'::uuid)  -- Buddhika / H.G.B.M. Rathnayaka
+)
+update public.users u set team_id=m.new_id
+from legacy_map m where u.team_id=m.old_id;
+
+with legacy_map(old_id,new_id) as (
+  values
+    ('aaaaaaaa-bbbb-cccc-dddd-000000000001'::uuid,'01172836-2c0b-4b24-997f-8858729e8b78'::uuid),
+    ('aaaaaaaa-bbbb-cccc-dddd-000000000002'::uuid,'da468796-f2f9-4a5b-9779-787cb0671e86'::uuid),
+    ('aaaaaaaa-bbbb-cccc-dddd-000000000003'::uuid,'e4d3f0ef-12fb-48b9-b268-c568ec153441'::uuid),
+    ('aaaaaaaa-bbbb-cccc-dddd-000000000004'::uuid,'732a9d4f-3940-47d8-aaa8-a5812d1183ff'::uuid)
+)
+update public.sales s set team_id=m.new_id from legacy_map m where s.team_id=m.old_id;
+
+with legacy_map(old_id,new_id) as (
+  values
+    ('aaaaaaaa-bbbb-cccc-dddd-000000000001'::uuid,'01172836-2c0b-4b24-997f-8858729e8b78'::uuid),
+    ('aaaaaaaa-bbbb-cccc-dddd-000000000002'::uuid,'da468796-f2f9-4a5b-9779-787cb0671e86'::uuid),
+    ('aaaaaaaa-bbbb-cccc-dddd-000000000003'::uuid,'e4d3f0ef-12fb-48b9-b268-c568ec153441'::uuid),
+    ('aaaaaaaa-bbbb-cccc-dddd-000000000004'::uuid,'732a9d4f-3940-47d8-aaa8-a5812d1183ff'::uuid)
+)
+update public.messages m set target_team_id=lm.new_id from legacy_map lm where m.target_team_id=lm.old_id;
+
+with legacy_map(old_id,new_id) as (
+  values
+    ('aaaaaaaa-bbbb-cccc-dddd-000000000001'::uuid,'01172836-2c0b-4b24-997f-8858729e8b78'::uuid),
+    ('aaaaaaaa-bbbb-cccc-dddd-000000000002'::uuid,'da468796-f2f9-4a5b-9779-787cb0671e86'::uuid),
+    ('aaaaaaaa-bbbb-cccc-dddd-000000000003'::uuid,'e4d3f0ef-12fb-48b9-b268-c568ec153441'::uuid),
+    ('aaaaaaaa-bbbb-cccc-dddd-000000000004'::uuid,'732a9d4f-3940-47d8-aaa8-a5812d1183ff'::uuid)
+)
+update public.commission_team_submissions c set team_id=lm.new_id from legacy_map lm where c.team_id=lm.old_id;
+alter table public.users enable trigger dd_connect_employee_audit;
+
 create index if not exists teams_status_name_idx on public.teams(status, name);
 create index if not exists teams_leader_id_idx on public.teams(leader_id) where leader_id is not null;
 
