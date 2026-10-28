@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../authentication/domain/employee_profile.dart';
 import '../application/attendance_controller.dart';
-import '../application/attendance_service.dart';
 import '../domain/attendance_record.dart';
 
 const _attendanceBlue = Color(0xFF1F5AA6);
@@ -173,7 +172,7 @@ class _AttendanceManagementScreenState extends ConsumerState<AttendanceManagemen
       ListTile(title:Text('Start: ${start.toIso8601String().substring(0,10)}'),trailing:const Icon(Icons.calendar_today),onTap:()async{final d=await showDatePicker(context:context,initialDate:start,firstDate:DateTime.now().subtract(const Duration(days:365)),lastDate:DateTime.now().add(const Duration(days:365)));if(d!=null)setDialog(()=>start=d);}),
       ListTile(title:Text('End: ${end.toIso8601String().substring(0,10)}'),trailing:const Icon(Icons.calendar_today),onTap:()async{final d=await showDatePicker(context:context,initialDate:end,firstDate:start,lastDate:DateTime.now().add(const Duration(days:365)));if(d!=null)setDialog(()=>end=d);}),
       TextField(controller:reason,minLines:2,maxLines:3,decoration:const InputDecoration(labelText:'Reason (required)',border:OutlineInputBorder())),
-    ])),actions:[TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('Submit'))]));
+    ]))),actions:[TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('Submit'))]));
     if(accepted!=true)return;
     try{await ref.read(attendanceServiceProvider).submitLeave(type:type,start:start,end:end,reason:reason.text);ref.invalidate(leaveRequestsProvider);if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Leave request submitted.')));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(_friendly(e))));}
   }
