@@ -5,13 +5,10 @@ on:
     branches:
       - main
       - feature/dd-world-connect-foundation
-    paths:
-      - 'dd_world_connect/**'
-      - '.github/workflows/dd-world-connect-ci.yml'
   pull_request:
-    paths:
-      - 'dd_world_connect/**'
-      - '.github/workflows/dd-world-connect-ci.yml'
+    branches:
+      - main
+      - feature/dd-world-connect-foundation
   workflow_dispatch:
 
 permissions:
