@@ -131,5 +131,5 @@ using (
 with check (
   is_owner()
   or (team_id is not null and dd_connect_private.can_view_team(team_id))
-  or (user_id = (select u.id from public.users u where u.auth_user_id = (select auth.uid()) limit 1) and status in ('PENDING','CANCELLED')
+  or (user_id = (select u.id from public.users u where u.auth_user_id = (select auth.uid()) limit 1) and status in ('PENDING','CANCELLED'))
 );
