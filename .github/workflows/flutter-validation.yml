@@ -3,9 +3,11 @@ name: DD WORLD CONNECT Flutter Validation
 on:
   push:
     branches:
+      - main
       - feature/dd-world-connect-foundation
   pull_request:
     branches:
+      - main
       - feature/dd-world-connect-foundation
   workflow_dispatch:
 
