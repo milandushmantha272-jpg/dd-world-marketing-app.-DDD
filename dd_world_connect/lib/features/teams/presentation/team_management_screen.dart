@@ -28,7 +28,7 @@ class TeamManagementScreen extends ConsumerWidget {
             decoration: const InputDecoration(prefixIcon: Icon(Icons.search), labelText: 'Search teams', hintText: 'Name or team code', border: OutlineInputBorder())),
           const SizedBox(height: 10),
           DropdownButtonFormField<TeamStatus?>(
-            value: status, decoration: const InputDecoration(labelText: 'Filter by status', border: OutlineInputBorder()),
+            initialValue: status, decoration: const InputDecoration(labelText: 'Filter by status', border: OutlineInputBorder()),
             items: const [
               DropdownMenuItem<TeamStatus?>(value: null, child: Text('All statuses')),
               DropdownMenuItem<TeamStatus?>(value: TeamStatus.active, child: Text('Active')),
@@ -128,7 +128,7 @@ class _TeamFormScreenState extends ConsumerState<TeamFormScreen> {
   @override Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: Text(widget.team == null ? 'Create Team' : 'Edit Team')), body: ListView(padding: const EdgeInsets.all(20), children: [
     TextField(controller: _code, textCapitalization: TextCapitalization.characters, decoration: const InputDecoration(labelText: 'Team Code', border: OutlineInputBorder())),
     const SizedBox(height: 14), TextField(controller: _name, decoration: const InputDecoration(labelText: 'Team Name', border: OutlineInputBorder())),
-    const SizedBox(height: 14), DropdownButtonFormField<TeamStatus>(value: _status, decoration: const InputDecoration(labelText: 'Team Status', border: OutlineInputBorder()), items: TeamStatus.values.map((s) => DropdownMenuItem(value: s, child: Text(s.label))).toList(), onChanged: (v) { if (v != null) setState(() => _status = v); }),
+    const SizedBox(height: 14), DropdownButtonFormField<TeamStatus>(initialValue: _status, decoration: const InputDecoration(labelText: 'Team Status', border: OutlineInputBorder()), items: TeamStatus.values.map((s) => DropdownMenuItem(value: s, child: Text(s.label))).toList(), onChanged: (v) { if (v != null) setState(() => _status = v); }),
     const SizedBox(height: 14), TextField(controller: _description, minLines: 3, maxLines: 5, decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder())),
     if (_error != null) ...[const SizedBox(height: 12), Text(_error!, style: const TextStyle(color: Colors.red))],
     const SizedBox(height: 20), FilledButton.icon(onPressed: _saving ? null : _save, icon: _saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.save_outlined), label: Text(_saving ? 'Saving…' : 'Save Team'), style: FilledButton.styleFrom(backgroundColor: _brand, padding: const EdgeInsets.all(15))),
@@ -148,7 +148,7 @@ class _AppointTeamLeaderScreenState extends ConsumerState<AppointTeamLeaderScree
   Future<void> _save() async { setState(() => _saving = true); try { await ref.read(teamRepositoryProvider).setLeader(widget.team.id, _leaderId, _reason.text); if (mounted) Navigator.pop(context, true); } catch (e) { if (mounted) setState(() => _error = _errorText(e)); } finally { if (mounted) setState(() => _saving = false); } }
   @override Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const Text('Appoint Team Leader')), body: _loading ? const Center(child: CircularProgressIndicator()) : ListView(padding: const EdgeInsets.all(20), children: [
     Text(widget.team.name, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold)), const SizedBox(height: 16),
-    DropdownButtonFormField<String?>(value: _leaderId, decoration: const InputDecoration(labelText: 'Team Leader', border: OutlineInputBorder()), items: [const DropdownMenuItem<String?>(value: null, child: Text('Remove current leader')), ..._people.map((p) => DropdownMenuItem<String?>(value: p['id'].toString(), child: Text('${p['name']} (${p['agent_code'] ?? 'No code'})')))], onChanged: (v) => setState(() => _leaderId = v)),
+    DropdownButtonFormField<String?>(initialValue: _leaderId, decoration: const InputDecoration(labelText: 'Team Leader', border: OutlineInputBorder()), items: [const DropdownMenuItem<String?>(value: null, child: Text('Remove current leader')), ..._people.map((p) => DropdownMenuItem<String?>(value: p['id'].toString(), child: Text('${p['name']} (${p['agent_code'] ?? 'No code'})')))], onChanged: (v) => setState(() => _leaderId = v)),
     const SizedBox(height: 14), TextField(controller: _reason, minLines: 2, maxLines: 3, decoration: const InputDecoration(labelText: 'Reason for change', border: OutlineInputBorder())),
     if (_error != null) ...[const SizedBox(height: 12), Text(_error!, style: const TextStyle(color: Colors.red))],
     const SizedBox(height: 20), FilledButton(onPressed: _saving ? null : _save, style: FilledButton.styleFrom(backgroundColor: _brand), child: Text(_saving ? 'Saving…' : 'Save Team Leader')),
@@ -180,8 +180,8 @@ class _TransferEmployeeScreenState extends ConsumerState<TransferEmployeeScreen>
     finally { if (mounted) setState(() => _saving = false); }
   }
   @override Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const Text('Transfer Employee')), body: _loading ? const Center(child: CircularProgressIndicator()) : ListView(padding: const EdgeInsets.all(20), children: [
-    DropdownButtonFormField<String>(value: _employeeId, decoration: const InputDecoration(labelText: 'Employee to transfer', border: OutlineInputBorder()), items: _people.where((p) => p['team_id']?.toString() != _teamId).map((p) => DropdownMenuItem(value: p['id'].toString(), child: Text('${p['name']} • ${p['agent_code'] ?? ''}'))).toList(), onChanged: (v) => setState(() => _employeeId = v)),
-    const SizedBox(height: 14), DropdownButtonFormField<String>(value: _teamId, decoration: const InputDecoration(labelText: 'Destination Team', border: OutlineInputBorder()), items: _teams.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(), onChanged: (v) => setState(() { _teamId = v; if (_people.any((p) => p['id'].toString() == _employeeId && p['team_id']?.toString() == v)) _employeeId = null; })),
+    DropdownButtonFormField<String>(initialValue: _employeeId, decoration: const InputDecoration(labelText: 'Employee to transfer', border: OutlineInputBorder()), items: _people.where((p) => p['team_id']?.toString() != _teamId).map((p) => DropdownMenuItem(value: p['id'].toString(), child: Text('${p['name']} • ${p['agent_code'] ?? ''}'))).toList(), onChanged: (v) => setState(() => _employeeId = v)),
+    const SizedBox(height: 14), DropdownButtonFormField<String>(initialValue: _teamId, decoration: const InputDecoration(labelText: 'Destination Team', border: OutlineInputBorder()), items: _teams.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(), onChanged: (v) => setState(() { _teamId = v; if (_people.any((p) => p['id'].toString() == _employeeId && p['team_id']?.toString() == v)) _employeeId = null; })),
     const SizedBox(height: 14), TextField(controller: _reason, minLines: 2, maxLines: 3, decoration: const InputDecoration(labelText: 'Transfer reason', border: OutlineInputBorder())),
     if (_error != null) ...[const SizedBox(height: 12), Text(_error!, style: const TextStyle(color: Colors.red))],
     const SizedBox(height: 20), FilledButton(onPressed: _saving ? null : _save, style: FilledButton.styleFrom(backgroundColor: _brand), child: Text(_saving ? 'Transferring…' : 'Transfer Employee')),
