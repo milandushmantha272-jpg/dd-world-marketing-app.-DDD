@@ -13,7 +13,7 @@ class ActivationRepository {
     final rows=await _client.from('activation_center_employee_view').select(_columns).order('created_at',ascending:false).limit(limit);
     return (rows as List).map((r)=>Activation.fromJson(Map<String,dynamic>.from(r))).toList();
   }
-  Future<ActivationStatistics> statistics() async {
+  Future<List<Map<String,dynamic>>> teamStatistics() async {\n    final rows=await _client.from('activation_center_employee_view').select('team_id,team_name,activation_type');\n    final grouped=<String,Map<String,dynamic>>{};\n    for(final value in rows as List){final row=Map<String,dynamic>.from(value);final key=row['team_id']?.toString() ?? 'direct';final entry=grouped.putIfAbsent(key,()=>{'team_id':row['team_id'],'team_name':row['team_name'] ?? 'Direct Agents','total':0,'sayuru':0,'govimithuru':0});entry['total']=(entry['total'] as int)+1;final type=row['activation_type'].toString();entry[type]=(entry[type] as int)+1;}\n    final result=grouped.values.toList()..sort((a,b)=>(b['total'] as int).compareTo(a['total'] as int));\n    return result;\n  }\n  Future<ActivationStatistics> statistics() async {
     final rows=await _client.from('activations').select('activation_type,created_at');
     final now=DateTime.now(), today=DateTime(now.year,now.month,now.day), week=today.subtract(Duration(days:today.weekday-1)), month=DateTime(now.year,now.month,1);
     var daily=0,weekly=0,monthly=0;
