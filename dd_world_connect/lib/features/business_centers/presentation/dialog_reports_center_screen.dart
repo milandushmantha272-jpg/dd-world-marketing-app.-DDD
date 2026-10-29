@@ -34,9 +34,9 @@ class DialogReportsCenterScreen extends ConsumerWidget {
             : null,
         body: const TabBarView(
           children: [
-            _ReportList(type: 'weekly'),
-            _ReportList(type: 'monthly'),
-            _ArchiveList(),
+            _ReportList(type: 'weekly', owner: _owner),
+            _ReportList(type: 'monthly', owner: _owner),
+            _ArchiveList(owner: _owner),
           ],
         ),
       ),
@@ -148,8 +148,9 @@ class DialogReportsCenterScreen extends ConsumerWidget {
 }
 
 class _ReportList extends ConsumerWidget {
-  const _ReportList({required this.type});
+  const _ReportList({required this.type, required this.owner});
   final String type;
+  final bool owner;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -164,7 +165,7 @@ class _ReportList extends ConsumerWidget {
               }
               return ListView(
                 padding: const EdgeInsets.all(12),
-                children: items.map((report) => _ReportCard(report: report, archived: false)).toList(),
+                children: items.map((report) => _ReportCard(report: report, archived: false, owner: owner)).toList(),
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -175,7 +176,8 @@ class _ReportList extends ConsumerWidget {
 }
 
 class _ArchiveList extends ConsumerWidget {
-  const _ArchiveList();
+  const _ArchiveList({required this.owner});
+  final bool owner;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -184,7 +186,7 @@ class _ArchiveList extends ConsumerWidget {
             if (items.isEmpty) return const Center(child: Text('Archive is empty.'));
             return ListView(
               padding: const EdgeInsets.all(12),
-              children: items.map((report) => _ReportCard(report: report, archived: true)).toList(),
+              children: items.map((report) => _ReportCard(report: report, archived: true, owner: owner)).toList(),
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -194,13 +196,13 @@ class _ArchiveList extends ConsumerWidget {
 }
 
 class _ReportCard extends ConsumerWidget {
-  const _ReportCard({required this.report, required this.archived});
+  const _ReportCard({required this.report, required this.archived, required this.owner});
   final DialogReport report;
   final bool archived;
+  final bool owner;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final owner = ref.read(businessCenterRoleProvider) == EmployeeRole.owner;
     return Card(
       child: ListTile(
         leading: Icon(report.mimeType == 'application/pdf' ? Icons.picture_as_pdf : Icons.table_chart),
