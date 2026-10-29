@@ -18,12 +18,12 @@ class EzCashRecord {
   String get amountLabel=>'LKR ${amount.toStringAsFixed(2)}';
 }
 class CommissionComplaintThread {
-  const CommissionComplaintThread({required this.id,required this.commissionId,required this.employeeId,required this.type,required this.message,required this.status,required this.createdAt,this.employeeName,this.employeeCode,this.expectedAmount,this.ownerResponse});
+  const CommissionComplaintThread({required this.id,required this.commissionId,required this.employeeId,required this.type,required this.message,required this.status,required this.createdAt,this.employeeName,this.employeeCode,this.expectedAmount,this.ownerResponse,this.screenshotPath});
   final String id,commissionId,employeeId,type,message,status;
   final DateTime createdAt;
-  final String? employeeName,employeeCode,ownerResponse;
+  final String? employeeName,employeeCode,ownerResponse,screenshotPath;
   final double? expectedAmount;
-  factory CommissionComplaintThread.fromJson(Map<String,dynamic> j){final employee=j['employee'];return CommissionComplaintThread(id:j['id'].toString(),commissionId:j['commission_id'].toString(),employeeId:j['employee_id'].toString(),type:(j['complaint_type']??j['type']??'other').toString(),message:j['message'].toString(),status:j['status'].toString(),createdAt:DateTime.parse(j['created_at'].toString()),employeeName:employee is Map?employee['name']?.toString():null,employeeCode:employee is Map?employee['agent_code']?.toString():null,expectedAmount:j['expected_amount']==null?null:(j['expected_amount'] as num).toDouble(),ownerResponse:j['owner_response']?.toString());}
+  factory CommissionComplaintThread.fromJson(Map<String,dynamic> j){final employee=j['employee'];return CommissionComplaintThread(id:j['id'].toString(),commissionId:j['commission_id'].toString(),employeeId:j['employee_id'].toString(),type:(j['complaint_type']??j['type']??'other').toString(),message:j['message'].toString(),status:j['status'].toString(),createdAt:DateTime.parse(j['created_at'].toString()),employeeName:employee is Map?employee['name']?.toString():null,employeeCode:employee is Map?employee['agent_code']?.toString():null,expectedAmount:j['expected_amount']==null?null:(j['expected_amount'] as num).toDouble(),ownerResponse:j['owner_response']?.toString(),screenshotPath:j['screenshot_path']?.toString());}
 }
 String reportMimeType(String fileName){final n=fileName.toLowerCase();if(n.endsWith('.pdf'))return 'application/pdf';if(n.endsWith('.xlsx'))return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';if(n.endsWith('.xls'))return 'application/vnd.ms-excel';if(n.endsWith('.csv'))return 'text/csv';throw const FormatException('Only PDF, Excel (.xlsx/.xls), and CSV files are supported.');}
 String imageMimeType(String fileName){final n=fileName.toLowerCase();if(n.endsWith('.png'))return 'image/png';if(n.endsWith('.webp'))return 'image/webp';if(n.endsWith('.pdf'))return 'application/pdf';return 'image/jpeg';}
