@@ -11,6 +11,7 @@ import '../../employees/presentation/employee_management_screen.dart';
 import '../../teams/presentation/team_management_screen.dart';
 import '../../attendance/presentation/attendance_management_screen.dart';
 import '../../activations/presentation/activation_center_screen.dart';
+import '../../commissions/presentation/commission_center_screen.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -144,6 +145,7 @@ class RoleDashboard extends StatelessWidget {
           ('My Team', Icons.groups_2_outlined),
           ('Team Sales', Icons.trending_up_rounded),
           ('Attendance Review', Icons.fact_check_outlined),
+          ('Commissions', Icons.payments_outlined),
           ('Meetings', Icons.event_outlined),
           ('Complaints', Icons.support_agent_outlined),
           ('Team Reports', Icons.assessment_outlined),
@@ -232,6 +234,7 @@ class RoleDashboard extends StatelessWidget {
                   onTap: (item.$1 == 'Activations' && profile.role == EmployeeRole.owner) ||
                           (item.$1 == 'Team Sales' && profile.role == EmployeeRole.teamLeader) ||
                           (item.$1 == 'Submit Activation' && (profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent)) ||
+                          ((item.$1 == 'Commissions' || item.$1 == 'My Commission') && true) ||
                           (item.$1 == 'Employees' && profile.role == EmployeeRole.owner) ||
                           (item.$1 == 'Teams' && profile.role == EmployeeRole.owner) ||
                           (item.$1 == 'My Team' && (profile.role == EmployeeRole.teamLeader || profile.role == EmployeeRole.agent)) ||
@@ -245,9 +248,11 @@ class RoleDashboard extends StatelessWidget {
                                 EmployeeRole.agent => const {EmployeeRole.agent},
                                 EmployeeRole.directAgent => const {EmployeeRole.directAgent},
                               },
-                              child: (item.$1 == 'Activations' || item.$1 == 'Team Sales' || item.$1 == 'Submit Activation')
-                                  ? ActivationCenterScreen(profile: profile)
-                                  : item.$1.toLowerCase().contains('attendance')
+                              child: (item.$1 == 'Commissions' || item.$1 == 'My Commission')
+                                  ? CommissionCenterScreen(profile: profile)
+                                  : (item.$1 == 'Activations' || item.$1 == 'Team Sales' || item.$1 == 'Submit Activation')
+                                      ? ActivationCenterScreen(profile: profile)
+                                      : item.$1.toLowerCase().contains('attendance')
                                       ? AttendanceManagementScreen(profile: profile)
                                       : (item.$1 == 'Teams' || item.$1 == 'My Team')
                                       ? TeamManagementScreen(role: profile.role)
@@ -264,7 +269,7 @@ class RoleDashboard extends StatelessWidget {
                         Icon(item.$2, size: 30, color: const Color(0xFF1F5AA6)),
                         const SizedBox(height: 12),
                         Text(item.$1, style: const TextStyle(fontWeight: FontWeight.w600)),
-                        if ((item.$1 == 'Employees' && profile.role == EmployeeRole.owner) || (item.$1 == 'Teams' && profile.role == EmployeeRole.owner) || (item.$1 == 'My Team' && (profile.role == EmployeeRole.teamLeader || profile.role == EmployeeRole.agent)) || (item.$1 == 'My Profile' && (profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent)) || item.$1.toLowerCase().contains('attendance') || item.$1 == 'Activations' || item.$1 == 'Team Sales' || item.$1 == 'Submit Activation') const Text('Open module', style: TextStyle(fontSize: 11, color: Color(0xFF667085))),
+                        if ((item.$1 == 'Employees' && profile.role == EmployeeRole.owner) || (item.$1 == 'Teams' && profile.role == EmployeeRole.owner) || (item.$1 == 'My Team' && (profile.role == EmployeeRole.teamLeader || profile.role == EmployeeRole.agent)) || (item.$1 == 'My Profile' && (profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent)) || item.$1.toLowerCase().contains('attendance') || item.$1 == 'Activations' || item.$1 == 'Team Sales' || item.$1 == 'Submit Activation' || item.$1 == 'Commissions' || item.$1 == 'My Commission') const Text('Open module', style: TextStyle(fontSize: 11, color: Color(0xFF667085))),
                       ],
                     ),
                   ),
