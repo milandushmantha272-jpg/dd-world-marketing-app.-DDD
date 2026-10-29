@@ -12,6 +12,9 @@ import '../../teams/presentation/team_management_screen.dart';
 import '../../attendance/presentation/attendance_management_screen.dart';
 import '../../activations/presentation/activation_center_screen.dart';
 import '../../commissions/presentation/commission_center_screen.dart';
+import '../../business_centers/presentation/dialog_reports_center_screen.dart';
+import '../../business_centers/presentation/commission_complaints_center_screen.dart';
+import '../../business_centers/presentation/ez_cash_center_screen.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -139,7 +142,11 @@ class RoleDashboard extends StatelessWidget {
           ('Commissions', Icons.payments_outlined),
           ('Meetings', Icons.event_outlined),
           ('Complaints', Icons.support_agent_outlined),
+          ('Dialog Reports', Icons.assessment_outlined),
+          ('EZ Cash', Icons.account_balance_wallet_outlined),
           ('Reports Center', Icons.assessment_outlined),
+          ('EZ Cash', Icons.account_balance_wallet_outlined),
+          ('Commission Complaints', Icons.report_problem_outlined),
         ],
       EmployeeRole.teamLeader => const [
           ('My Team', Icons.groups_2_outlined),
@@ -149,6 +156,7 @@ class RoleDashboard extends StatelessWidget {
           ('Meetings', Icons.event_outlined),
           ('Complaints', Icons.support_agent_outlined),
           ('Team Reports', Icons.assessment_outlined),
+          ('EZ Cash', Icons.account_balance_wallet_outlined),
         ],
       EmployeeRole.agent => const [
           ('My Team', Icons.groups_2_outlined),
@@ -238,7 +246,7 @@ class RoleDashboard extends StatelessWidget {
                           (item.$1 == 'Employees' && profile.role == EmployeeRole.owner) ||
                           (item.$1 == 'Teams' && profile.role == EmployeeRole.owner) ||
                           (item.$1 == 'My Team' && (profile.role == EmployeeRole.teamLeader || profile.role == EmployeeRole.agent)) ||
-                          ((item.$1 == 'My Profile' && (profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent)) || item.$1.toLowerCase().contains('attendance'))
+                          ((item.$1 == 'My Profile' && (profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent)) || item.$1.toLowerCase().contains('attendance')) || item.$1 == 'Reports Center' || item.$1 == 'Team Reports' || item.$1 == 'Dialog Reports' || item.$1 == 'EZ Cash' || item.$1 == 'Commission Complaints' || item.$1 == 'Complaints'
                       ? () => Navigator.of(context).push(MaterialPageRoute<void>(
                             builder: (_) => RoleGuard(
                               profile: profile,
@@ -250,6 +258,12 @@ class RoleDashboard extends StatelessWidget {
                               },
                               child: (item.$1 == 'Commissions' || item.$1 == 'My Commission')
                                   ? CommissionCenterScreen(profile: profile)
+                                  : (item.$1 == 'Reports Center' || item.$1 == 'Team Reports' || item.$1 == 'Dialog Reports')
+                                      ? DialogReportsCenterScreen(profile: profile)
+                                      : (item.$1 == 'Commission Complaints' || item.$1 == 'Complaints')
+                                          ? CommissionComplaintsCenterScreen(profile: profile)
+                                          : item.$1 == 'EZ Cash'
+                                              ? EzCashCenterScreen(profile: profile)
                                   : (item.$1 == 'Activations' || item.$1 == 'Team Sales' || item.$1 == 'Submit Activation')
                                       ? ActivationCenterScreen(profile: profile)
                                       : item.$1.toLowerCase().contains('attendance')
