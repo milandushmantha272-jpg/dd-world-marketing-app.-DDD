@@ -1,0 +1,11 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../data/employee_repository.dart';
+import '../domain/employee.dart';
+final employeeRepositoryProvider = Provider<EmployeeRepository>((ref) => EmployeeRepository());
+final employeeSearchProvider = StateProvider<String>((ref) => '');
+final employeeStatusFilterProvider = StateProvider<EmployeeStatus?>((ref) => null);
+final employeeTeamFilterProvider = StateProvider<String?>((ref) => null);
+final employeeListProvider = FutureProvider<List<Employee>>((ref) => ref.watch(employeeRepositoryProvider).list(search:ref.watch(employeeSearchProvider),status:ref.watch(employeeStatusFilterProvider),teamId:ref.watch(employeeTeamFilterProvider)));
+final employeeTeamsProvider = FutureProvider<List<EmployeeTeam>>((ref) => ref.watch(employeeRepositoryProvider).teams());
+final employeeDetailsProvider = FutureProvider.family<Employee,String>((ref,id) => ref.watch(employeeRepositoryProvider).getById(id));
+final employeeHistoryProvider = FutureProvider.family<List<Map<String,dynamic>>,String>((ref,id) => ref.watch(employeeRepositoryProvider).history(id));

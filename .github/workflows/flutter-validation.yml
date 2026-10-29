@@ -1,0 +1,93 @@
+name: DD WORLD CONNECT Flutter Validation
+
+on:
+  push:
+    branches:
+      - main
+      - feature/dd-world-connect-foundation
+  pull_request:
+    branches:
+      - main
+      - feature/dd-world-connect-foundation
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flutter-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flutter-validation:
+    name: Analyze, test, and build Android APKs
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dd_world_connect
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Restore missing Flutter Android platform
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -f android/app/build.gradle && ! -f android/app/build.gradle.kts ]]; then
+            echo "Flutter Android platform is missing in dd_world_connect; generating Android scaffold without touching lib/ or pubspec.yaml."
+            flutter create --platforms=android --org com.ddworld.marketing --project-name dd_world_connect .
+          fi
+          test -d android
+          test -d android/app
+          test -d android/app/src/main
+          test -f android/app/src/main/AndroidManifest.xml
+          test -f android/settings.gradle || test -f android/settings.gradle.kts
+          test -f android/gradle.properties
+          test -f android/app/build.gradle || test -f android/app/build.gradle.kts
+          echo "Verified Flutter Android platform files:"
+          find android -maxdepth 4 -type f | sort | head -100
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Build debug APK
+        run: flutter build apk --debug
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Report APK file names and sizes
+        shell: bash
+        run: |
+          set -euo pipefail
+          for apk in build/app/outputs/flutter-apk/*.apk; do
+            if [[ -f "$apk" ]]; then
+              printf '%s\t' "$(basename "$apk")"
+              stat -c '%s bytes' "$apk"
+              sha256sum "$apk"
+            fi
+          done
+
+      - name: Upload debug and release APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: dd-world-connect-apks
+          path: |
+            dd_world_connect/build/app/outputs/flutter-apk/*.apk
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,7 @@
+project_id = "dd-world-connect"
+
+[functions.employee-session-bootstrap]
+verify_jwt = true
+
+[functions.owner-reset-device]
+verify_jwt = true
