@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../authentication/domain/employee_profile.dart';
 import '../application/business_center_providers.dart';
@@ -250,6 +251,21 @@ class _ComplaintDetailsState extends ConsumerState<_ComplaintDetails> {
                   if (complaint.expectedAmount != null)
                     Text('Expected amount: LKR ${complaint.expectedAmount!.toStringAsFixed(2)}'),
                   if (complaint.ownerResponse != null) Text('Owner response: ${complaint.ownerResponse}'),
+                  if (complaint.screenshotPath != null && complaint.screenshotPath!.isNotEmpty)
+                    TextButton.icon(
+                      onPressed: () async {
+                        try {
+                          final url = await ref.read(businessCenterRepositoryProvider).complaintAttachmentUrl(complaint.screenshotPath!);
+                          if (!await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication)) {
+                            throw StateError('Could not open the evidence file.');
+                          }
+                        } catch (error) {
+                          if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Evidence unavailable: $error')));
+                        }
+                      },
+                      icon: const Icon(Icons.attachment),
+                      label: const Text('Open screenshot / evidence'),
+                    ),
                 ],
               ),
             ),
