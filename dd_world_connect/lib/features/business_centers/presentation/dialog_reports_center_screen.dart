@@ -64,7 +64,7 @@ class DialogReportsCenterScreen extends ConsumerWidget {
                   textCapitalization: TextCapitalization.sentences,
                 ),
                 DropdownButtonFormField<String>(
-                  value: type,
+                  initialValue: type,
                   items: const [
                     DropdownMenuItem(value: 'weekly', child: Text('Weekly report')),
                     DropdownMenuItem(value: 'monthly', child: Text('Monthly report')),
