@@ -4,7 +4,6 @@ import 'package:excel/excel.dart' as xl;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -78,7 +77,7 @@ class EzCashCenterScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
-                  value: employeeId,
+                  initialValue: employeeId,
                   decoration: const InputDecoration(labelText: 'Employee'),
                   items: employees
                       .map((employee) => DropdownMenuItem(
@@ -113,7 +112,7 @@ class EzCashCenterScreen extends ConsumerWidget {
                   decoration: const InputDecoration(labelText: 'Amount (LKR)'),
                 ),
                 DropdownButtonFormField<String>(
-                  value: status,
+                  initialValue: status,
                   decoration: const InputDecoration(labelText: 'Status'),
                   items: const [
                     DropdownMenuItem(value: 'pending', child: Text('Pending')),
