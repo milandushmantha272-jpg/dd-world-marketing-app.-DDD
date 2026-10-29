@@ -121,7 +121,7 @@ class CommissionComplaintsCenterScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
-                  value: complaintType,
+                  initialValue: complaintType,
                   decoration: const InputDecoration(labelText: 'Complaint type'),
                   items: const [
                     DropdownMenuItem(value: 'not_received', child: Text('Not received')),
@@ -132,7 +132,7 @@ class CommissionComplaintsCenterScreen extends ConsumerWidget {
                   onChanged: (value) => setDialogState(() => complaintType = value ?? complaintType),
                 ),
                 DropdownButtonFormField<String>(
-                  value: commissionId,
+                  initialValue: commissionId,
                   decoration: const InputDecoration(labelText: 'Commission record'),
                   items: commissions
                       .map(
