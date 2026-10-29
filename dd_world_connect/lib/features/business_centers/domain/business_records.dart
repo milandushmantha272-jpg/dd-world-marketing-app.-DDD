@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 class DialogReport {
   const DialogReport({required this.id,required this.type,required this.title,required this.periodStart,required this.periodEnd,required this.filePath,required this.fileName,required this.mimeType,required this.fileSize,required this.createdAt,required this.archivedAt});
   final String id,type,title,filePath,fileName,mimeType;
