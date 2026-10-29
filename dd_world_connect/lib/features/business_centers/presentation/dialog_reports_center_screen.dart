@@ -15,13 +15,13 @@ class DialogReportsCenterScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Dialog Reports Center'),
           bottom: const TabBar(
             isScrollable: true,
-            tabs: [Tab(text: 'Weekly'), Tab(text: 'Monthly'), Tab(text: 'Archive')],
+            tabs: [Tab(text: 'Weekly'), Tab(text: 'Monthly'), Tab(text: 'Downloads'), Tab(text: 'Archive')],
           ),
         ),
         floatingActionButton: _owner
@@ -35,6 +35,7 @@ class DialogReportsCenterScreen extends ConsumerWidget {
           children: [
             _ReportList(type: 'weekly', owner: _owner),
             _ReportList(type: 'monthly', owner: _owner),
+            _DownloadCenter(owner: _owner),
             _ArchiveList(owner: _owner),
           ],
         ),
@@ -219,7 +220,7 @@ class _ReportCard extends ConsumerWidget {
             if (owner) const PopupMenuItem(value: 'delete', child: Text('Delete')),
           ],
         ),
-        onTap: () => _action(context, ref, 'download'),
+        onTap: () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => _ReportDetails(report: report, owner: owner, archived: archived))),
       ),
     );
   }
@@ -265,5 +266,98 @@ class _ReportCard extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Action failed: $error')));
       }
     }
+  }
+}
+
+
+class _DownloadCenter extends ConsumerWidget {
+  const _DownloadCenter({required this.owner});
+  final bool owner;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ref.watch(dialogReportsProvider('')).when(
+      data: (items) => items.isEmpty
+          ? const Center(child: Text('No reports available to download.'))
+          : ListView(
+              padding: const EdgeInsets.all(12),
+              children: items.map((report) => _ReportCard(report: report, archived: false, owner: owner)).toList(),
+            ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => Center(child: Text('Download Center unavailable: $error')),
+    );
+  }
+}
+
+class _ReportDetails extends ConsumerWidget {
+  const _ReportDetails({required this.report, required this.owner, required this.archived});
+  final DialogReport report;
+  final bool owner;
+  final bool archived;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Report Details')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(report.mimeType == 'application/pdf' ? Icons.picture_as_pdf : Icons.table_chart, size: 42),
+                  const SizedBox(height: 12),
+                  Text(report.title, style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(height: 8),
+                  Text('Type: ${report.type.toUpperCase()}'),
+                  Text('Period: ${report.periodLabel}'),
+                  Text('File: ${report.fileName}'),
+                  Text('Format: ${report.mimeType}'),
+                  Text('Size: ${(report.fileSize / 1024).toStringAsFixed(1)} KB'),
+                  Text('Uploaded: ${report.createdAt.toLocal()}'),
+                  if (report.archivedAt != null) Text('Archived: ${report.archivedAt!.toLocal()}'),
+                ],
+              ),
+            ),
+          ),
+          FilledButton.icon(
+            onPressed: () async {
+              try {
+                final url = await ref.read(businessCenterRepositoryProvider).downloadDialogReport(report);
+                if (!await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication)) {
+                  throw StateError('Could not open report file.');
+                }
+              } catch (error) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Download failed: $error')));
+                }
+              }
+            },
+            icon: const Icon(Icons.download),
+            label: const Text('Download / Open report'),
+          ),
+          if (owner && !archived)
+            OutlinedButton.icon(
+              onPressed: () async {
+                try {
+                  await ref.read(businessCenterRepositoryProvider).archiveDialogReport(report);
+                  ref.invalidate(dialogReportsProvider('weekly'));
+                  ref.invalidate(dialogReportsProvider('monthly'));
+                  ref.invalidate(dialogReportsProvider(''));
+                  ref.invalidate(dialogArchiveProvider);
+                  if (context.mounted) Navigator.pop(context);
+                } catch (error) {
+                  if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Archive failed: $error')));
+                }
+              },
+              icon: const Icon(Icons.archive_outlined),
+              label: const Text('Archive report'),
+            ),
+        ],
+      ),
+    );
   }
 }
