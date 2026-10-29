@@ -19,14 +19,59 @@ class CommissionCenterScreen extends ConsumerWidget {
  if(_leader)const Padding(padding:EdgeInsets.symmetric(vertical:8),child:Text('Team commission view · comments can be shared with your team')),
  OutlinedButton.icon(onPressed:()=>Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>CommissionHistoryScreen(profile:profile))),icon:const Icon(Icons.history),label:const Text('Commission history')),
  const SizedBox(height:8),const Text('Monthly commissions',style:TextStyle(fontWeight:FontWeight.bold,fontSize:18)),
- records.when(data:(items)=>items.isEmpty?const Padding(padding:EdgeInsets.all(24),child:Text('No commission records for this month.',textAlign:TextAlign.center)):Column(children:items.map((c)=>Card(child:ListTile(leading:CircleAvatar(child:Icon(_icon(c.status))),title:Text(c.employeeName,maxLines:1,overflow:TextOverflow.ellipsis),subtitle:Text('${c.employeeCode} · ${c.monthLabel} · ${c.status.label}'),trailing:Text(c.formattedAmount,style:const TextStyle(fontWeight:FontWeight.bold)),onTap:()=>Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>CommissionDetailsScreen(profile:profile,commission:c))))).toList()),loading:()=>const Center(child:Padding(padding:EdgeInsets.all(20),child:CircularProgressIndicator())),error:(e,_)=>_error(e)),
+    records.when(
+      data: (items) {
+        if (items.isEmpty) {
+          return const Padding(padding: EdgeInsets.all(24), child: Text('No commission records for this month.', textAlign: TextAlign.center));
+        }
+        return Column(children: items.map((c) => Card(
+          child: ListTile(
+            leading: CircleAvatar(child: Icon(_icon(c.status))),
+            title: Text(c.employeeName, maxLines: 1, overflow: TextOverflow.ellipsis),
+            subtitle: Text('${c.employeeCode} · ${c.monthLabel} · ${c.status.label}'),
+            trailing: Text(c.formattedAmount, style: const TextStyle(fontWeight: FontWeight.bold)),
+            onTap: () => Navigator.push(context, MaterialPageRoute<void>(
+              builder: (_) => CommissionDetailsScreen(profile: profile, commission: c),
+            )),
+          ),
+        )).toList());
+      },
+      loading: () => const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator())),
+      error: (e, _) => _error(e),
+    ),
  ])));
  }
  Widget _metric(String l,String v)=>Card(child:Padding(padding:const EdgeInsets.all(12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,mainAxisAlignment:MainAxisAlignment.center,children:[Text(l,style:const TextStyle(color:Colors.black54)),const SizedBox(height:5),Text(v,style:const TextStyle(fontSize:17,fontWeight:FontWeight.bold),maxLines:1,overflow:TextOverflow.ellipsis)])));
  Widget _error(Object e)=>Padding(padding:const EdgeInsets.all(12),child:Text('Could not load commissions: $e',style:const TextStyle(color:Colors.red)));
  IconData _icon(CommissionStatus s)=>switch(s){CommissionStatus.confirmed=>Icons.check_circle,CommissionStatus.notReceived=>Icons.error_outline,CommissionStatus.wrongAmount=>Icons.warning_amber,CommissionStatus.pending=>Icons.hourglass_top};
  Future<void> _upload(BuildContext context,WidgetRef ref,DateTime month)async{final result=await FilePicker.platform.pickFiles(type:FileType.custom,allowedExtensions:['csv'],withData:true);if(result==null||result.files.single.bytes==null)return;await ref.read(commissionUploadControllerProvider.notifier).upload(bytes:result.files.single.bytes!,fileName:result.files.single.name,month:month);final state=ref.read(commissionUploadControllerProvider);if(!context.mounted)return;if(state.hasError){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('Upload failed: ${state.error}')));}else{ref.invalidate(commissionRecordsProvider);ref.invalidate(commissionStatisticsProvider);ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('Imported ${state.value} commission records.')));}}
- Future<void> _showComplaints(BuildContext context,WidgetRef ref)async{ref.invalidate(commissionComplaintsProvider);await showModalBottomSheet<void>(context:context,isScrollControlled:true,builder:(ctx)=>SafeArea(child:Padding(padding:const EdgeInsets.all(16),child:Consumer(builder:(ctx,ref,_)=>ref.watch(commissionComplaintsProvider).when(data:(items)=>items.isEmpty?const Text('No complaints submitted.'):ListView(shrinkWrap:true,children:items.map((c)=>ListTile(title:Text(c.type.replaceAll('_',' ').toUpperCase()),subtitle:Text('${c.status} · ${c.message}')).toList()),loading:()=>const Center(child:CircularProgressIndicator()),error:(e,_)=>Text('Failed to load complaints: $e'))))));}
+  Future<void> _showComplaints(BuildContext context, WidgetRef ref) async {
+    ref.invalidate(commissionComplaintsProvider);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Consumer(
+            builder: (ctx, ref, _) => ref.watch(commissionComplaintsProvider).when(
+              data: (items) => items.isEmpty
+                  ? const Text('No complaints submitted.')
+                  : ListView(
+                      shrinkWrap: true,
+                      children: items.map((c) => ListTile(
+                        title: Text(c.type.replaceAll('_', ' ').toUpperCase()),
+                        subtitle: Text('${c.status} · ${c.message}'),
+                      )).toList(),
+                    ),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Text('Failed to load complaints: $e'),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 class CommissionDetailsScreen extends ConsumerStatefulWidget{const CommissionDetailsScreen({super.key,required this.profile,required this.commission});final EmployeeProfile profile;final CommissionRecord commission;@override ConsumerState<CommissionDetailsScreen> createState()=>_CommissionDetailsScreenState();}
 class _CommissionDetailsScreenState extends ConsumerState<CommissionDetailsScreen>{
@@ -43,8 +88,42 @@ class _CommissionDetailsScreenState extends ConsumerState<CommissionDetailsScree
  if(_owner||_leader)...[const SizedBox(height:12),TextField(controller:_comment,decoration:const InputDecoration(labelText:'Add commission comment'),maxLines:2),FilledButton(onPressed:_busy?null:_addComment,child:Text(_leader?'Share comment with team':'Add owner comment'))],
  const SizedBox(height:18),const Text('Comments',style:TextStyle(fontWeight:FontWeight.bold)),ref.watch(commissionCommentsProvider(c.id)).when(data:(items)=>Column(children:items.map((x)=>ListTile(title:Text(x['author']?['name']?.toString()??'Staff'),subtitle:Text(x['comment'].toString()),trailing:(x['shared_with_team']==true)?const Icon(Icons.groups):null)).toList()),loading:()=>const LinearProgressIndicator(),error:(e,_)=>Text('Comments unavailable: $e')),
  const SizedBox(height:18),const Text('Commission history',style:TextStyle(fontWeight:FontWeight.bold)),ref.watch(commissionHistoryProvider(c.id)).when(data:(items)=>Column(children:items.map((x)=>ListTile(title:Text(x['event_type'].toString()),subtitle:Text(DateTime.parse(x['created_at'].toString()).toLocal().toString())).toList()),loading:()=>const LinearProgressIndicator(),error:(e,_)=>Text('History unavailable: $e')),
- ]));}
+    const SizedBox(height: 18),
+    const Text('Commission history', style: TextStyle(fontWeight: FontWeight.bold)),
+    ref.watch(commissionHistoryProvider(c.id)).when(
+      data: (items) => Column(
+        children: items.map((x) => ListTile(
+          title: Text(x['event_type'].toString()),
+          subtitle: Text(DateTime.parse(x['created_at'].toString()).toLocal().toString()),
+        )).toList(),
+      ),
+      loading: () => const LinearProgressIndicator(),
+      error: (e, _) => Text('History unavailable: $e'),
+    ),
 }
 class CommissionHistoryScreen extends ConsumerWidget{const CommissionHistoryScreen({super.key,required this.profile});final EmployeeProfile profile;
- @override Widget build(BuildContext context,WidgetRef ref){return Scaffold(appBar:AppBar(title:const Text('Commission History')),body:FutureBuilder<List<CommissionRecord>>(future:ref.watch(commissionRepositoryProvider).list(),builder:(context,s)=>s.connectionState!=ConnectionState.done?const Center(child:CircularProgressIndicator()):s.hasError?Center(child:Text('History unavailable: ${s.error}')):ListView(children:s.data!.map((c)=>ListTile(title:Text(c.employeeName),subtitle:Text('${c.monthLabel} · ${c.status.label}'),trailing:Text(c.formattedAmount),onTap:()=>Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>CommissionDetailsScreen(profile:profile,commission:c)))).toList()));}
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Commission History')),
+      body: FutureBuilder<List<CommissionRecord>>(
+        future: ref.watch(commissionRepositoryProvider).list(),
+        builder: (context, s) {
+          if (s.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
+          if (s.hasError) return Center(child: Text('History unavailable: ${s.error}'));
+          final items = s.data ?? const <CommissionRecord>[];
+          return ListView(
+            children: items.map((c) => ListTile(
+              title: Text(c.employeeName),
+              subtitle: Text('${c.monthLabel} · ${c.status.label}'),
+              trailing: Text(c.formattedAmount),
+              onTap: () => Navigator.push(context, MaterialPageRoute<void>(
+                builder: (_) => CommissionDetailsScreen(profile: profile, commission: c),
+              )),
+            )).toList(),
+          );
+        },
+      ),
+    );
+  }
 }
