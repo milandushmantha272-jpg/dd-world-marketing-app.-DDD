@@ -134,6 +134,7 @@ declare actor uuid;
 begin
  actor=(select dd_connect_private.commission_actor_id());
  if actor is null then raise exception 'Active approved employee session required';end if;
+ if lower(coalesce((select dd_connect_private.commission_actor_role()),'')) not in ('agent','direct_agent') then raise exception 'Only agents can confirm their own commission';end if;
  if p_status not in ('confirmed','not_received','wrong_amount') then raise exception 'Invalid confirmation status';end if;
  update public.commissions set status=p_status,confirmation_note=nullif(trim(p_note),''),confirmed_at=case when p_status='confirmed' then now() else null end
  where id=p_commission_id and employee_id=actor;
