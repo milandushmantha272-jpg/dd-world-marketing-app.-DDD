@@ -5,10 +5,14 @@ on:
     branches:
       - main
       - feature/dd-world-connect-foundation
+      - feature/commission-center
+      - feature/dialog-reports-ezcash
   pull_request:
     branches:
       - main
       - feature/dd-world-connect-foundation
+      - feature/commission-center
+      - feature/dialog-reports-ezcash
   workflow_dispatch:
 
 permissions:
@@ -53,6 +57,12 @@ jobs:
           test -f android/settings.gradle || test -f android/settings.gradle.kts
           test -f android/gradle.properties
           test -f android/app/build.gradle || test -f android/app/build.gradle.kts
+          if [[ -f android/app/build.gradle.kts ]]; then
+            sed -i -E "s/compileSdk = flutter\.compileSdkVersion/compileSdk = 36/" android/app/build.gradle.kts
+          else
+            sed -i -E "s/compileSdkVersion flutter\.compileSdkVersion/compileSdkVersion 36/; s/compileSdk flutter\.compileSdkVersion/compileSdk 36/" android/app/build.gradle
+          fi
+          echo "Android compileSdk pinned to API 36 for current Flutter plugins."
           echo "Verified Flutter Android platform files:"
           find android -maxdepth 4 -type f | sort | head -100
 
