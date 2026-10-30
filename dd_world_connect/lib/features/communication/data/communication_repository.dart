@@ -56,6 +56,10 @@ class CommunicationRepository {
     return rows.map(CommunicationMessage.fromJson).toList();
   }
 
+  Future<void> markDirectMessagesRead({required String conversationId,required String employeeId}) async {
+    await client.from('conversation_messages').update({'read_at':DateTime.now().toUtc().toIso8601String()}).eq('conversation_id',conversationId).neq('sender_id',employeeId).isFilter('read_at',null);
+  }
+
   Future<void> sendDirectMessage({required String conversationId,required String employeeId,required String body,String? attachmentPath,String? mimeType}) async {
     if(body.trim().isEmpty&&attachmentPath==null)return;
     await client.from('conversation_messages').insert({'conversation_id':conversationId,'sender_id':employeeId,'body':body.trim(),'message_type':attachmentPath==null?'text':'image','attachment_path':attachmentPath,'attachment_mime_type':mimeType});
