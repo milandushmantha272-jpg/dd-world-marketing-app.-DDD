@@ -15,6 +15,7 @@ import '../../commissions/presentation/commission_center_screen.dart';
 import '../../business_centers/presentation/dialog_reports_center_screen.dart';
 import '../../business_centers/presentation/commission_complaints_center_screen.dart';
 import '../../business_centers/presentation/ez_cash_center_screen.dart';
+import '../../employee_lifecycle/presentation/employee_lifecycle_screens.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -144,6 +145,12 @@ class RoleDashboard extends StatelessWidget {
           ('Dialog Reports', Icons.assessment_outlined),
           ('EZ Cash', Icons.account_balance_wallet_outlined),
           ('Meetings', Icons.event_outlined),
+          ('Company ID', Icons.badge_outlined),
+          ('Documents', Icons.folder_shared_outlined),
+          ('Leave', Icons.event_busy_outlined),
+          ('Downloads', Icons.download_outlined),
+          ('Training', Icons.school_outlined),
+          ('QR Scanner', Icons.qr_code_scanner),
         ],
       EmployeeRole.teamLeader => const [
           ('My Team', Icons.groups_2_outlined),
@@ -154,6 +161,12 @@ class RoleDashboard extends StatelessWidget {
           ('Dialog Reports', Icons.assessment_outlined),
           ('EZ Cash', Icons.account_balance_wallet_outlined),
           ('Meetings', Icons.event_outlined),
+          ('Company ID', Icons.badge_outlined),
+          ('Documents', Icons.folder_shared_outlined),
+          ('Leave', Icons.event_busy_outlined),
+          ('Downloads', Icons.download_outlined),
+          ('Training', Icons.school_outlined),
+          ('QR Scanner', Icons.qr_code_scanner),
         ],
       EmployeeRole.agent => const [
           ('My Team', Icons.groups_2_outlined),
@@ -166,6 +179,12 @@ class RoleDashboard extends StatelessWidget {
           ('Dialog Reports', Icons.assessment_outlined),
           ('EZ Cash', Icons.account_balance_wallet_outlined),
           ('Meetings', Icons.event_outlined),
+          ('Company ID', Icons.badge_outlined),
+          ('Documents', Icons.folder_shared_outlined),
+          ('Leave', Icons.event_busy_outlined),
+          ('Downloads', Icons.download_outlined),
+          ('Training', Icons.school_outlined),
+          ('QR Scanner', Icons.qr_code_scanner),
         ],
       EmployeeRole.directAgent => const [
           ('My Profile', Icons.badge_outlined),
@@ -177,6 +196,12 @@ class RoleDashboard extends StatelessWidget {
           ('Dialog Reports', Icons.assessment_outlined),
           ('EZ Cash', Icons.account_balance_wallet_outlined),
           ('Owner Messages', Icons.notifications_outlined),
+          ('Company ID', Icons.badge_outlined),
+          ('Documents', Icons.folder_shared_outlined),
+          ('Leave', Icons.event_busy_outlined),
+          ('Downloads', Icons.download_outlined),
+          ('Training', Icons.school_outlined),
+          ('QR Scanner', Icons.qr_code_scanner),
         ],
     };
 
@@ -247,7 +272,7 @@ class RoleDashboard extends StatelessWidget {
                           (item.$1 == 'Employees' && profile.role == EmployeeRole.owner) ||
                           (item.$1 == 'Teams' && profile.role == EmployeeRole.owner) ||
                           (item.$1 == 'My Team' && (profile.role == EmployeeRole.teamLeader || profile.role == EmployeeRole.agent)) ||
-                          ((item.$1 == 'My Profile' && (profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent)) || item.$1.toLowerCase().contains('attendance')) || item.$1 == 'Reports Center' || item.$1 == 'Team Reports' || item.$1 == 'Dialog Reports' || item.$1 == 'EZ Cash' || item.$1 == 'Commission Complaints' || item.$1 == 'Complaints'
+                          ((item.$1 == 'My Profile' && (profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent)) || item.$1.toLowerCase().contains('attendance')) || item.$1 == 'Reports Center' || item.$1 == 'Team Reports' || item.$1 == 'Dialog Reports' || item.$1 == 'EZ Cash' || item.$1 == 'Commission Complaints' || item.$1 == 'Complaints' || item.$1 == 'Company ID' || item.$1 == 'Documents' || item.$1 == 'Leave' || item.$1 == 'Downloads' || item.$1 == 'Training' || item.$1 == 'QR Scanner'
                       ? () => Navigator.of(context).push(MaterialPageRoute<void>(
                             builder: (_) => RoleGuard(
                               profile: profile,
@@ -257,7 +282,13 @@ class RoleDashboard extends StatelessWidget {
                                 EmployeeRole.agent => const {EmployeeRole.agent},
                                 EmployeeRole.directAgent => const {EmployeeRole.directAgent},
                               },
-                              child: (item.$1 == 'Commissions' || item.$1 == 'My Commission')
+                              child: item.$1 == 'Company ID' ? EmployeeIdDashboardScreen(profile: profile)
+                                  : item.$1 == 'QR Scanner' ? QrScannerScreen(profile: profile)
+                                  : item.$1 == 'Documents' ? DocumentVaultScreen(profile: profile)
+                                  : item.$1 == 'Leave' ? LeaveManagementScreen(profile: profile)
+                                  : item.$1 == 'Downloads' ? DownloadCenterScreen(profile: profile)
+                                  : item.$1 == 'Training' ? TrainingCenterScreen(profile: profile)
+                                  : (item.$1 == 'Commissions' || item.$1 == 'My Commission')
                                   ? CommissionCenterScreen(profile: profile)
                                   : (item.$1 == 'Reports Center' || item.$1 == 'Team Reports' || item.$1 == 'Dialog Reports')
                                       ? DialogReportsCenterScreen(profile: profile)
