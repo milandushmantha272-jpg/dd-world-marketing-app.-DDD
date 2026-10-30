@@ -23,6 +23,12 @@ class CommunicationRepository {
     await client.from('meetings').insert({'created_by':employeeId,'title':title.trim(),'description':description.trim(),'meeting_type':type,'starts_at':startsAt.toUtc().toIso8601String(),'ends_at':endsAt.toUtc().toIso8601String(),'location':location,'meeting_url':meetingUrl,'team_id':teamId});
   }
 
+
+  Future<void> updateMeeting({required String meetingId,required String title,required String description,required String type,required DateTime startsAt,required DateTime endsAt,String? location,String? meetingUrl}) async {
+    await client.from('meetings').update({'title':title.trim(),'description':description.trim(),'meeting_type':type,'starts_at':startsAt.toUtc().toIso8601String(),'ends_at':endsAt.toUtc().toIso8601String(),'location':location,'meeting_url':meetingUrl}).eq('id',meetingId);
+  }
+  Future<void> deleteMeeting(String meetingId) async { await client.from('meetings').delete().eq('id',meetingId); }
+
   Future<void> markAttendance({required String meetingId,required String employeeId}) async {
     await client.from('meeting_attendance').upsert({'meeting_id':meetingId,'employee_id':employeeId,'attendance_status':'attending','marked_at':DateTime.now().toUtc().toIso8601String()},onConflict:'meeting_id,employee_id');
   }
