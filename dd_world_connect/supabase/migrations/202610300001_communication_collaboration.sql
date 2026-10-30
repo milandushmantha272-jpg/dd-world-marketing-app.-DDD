@@ -94,13 +94,13 @@ create table if not exists public.conversation_messages (
 create index if not exists conversation_messages_conversation_created_idx on public.conversation_messages(conversation_id,created_at desc);
 create or replace function public.dd_comm_is_conversation_member(p_conversation_id uuid)
 returns boolean language sql stable security definer set search_path = public, pg_temp
-as $ select exists(select 1 from public.conversation_members cm where cm.conversation_id=p_conversation_id and cm.employee_id=public.dd_comm_current_user_id()) $;
+as $fn$ select exists(select 1 from public.conversation_members cm where cm.conversation_id=p_conversation_id and cm.employee_id=public.dd_comm_current_user_id()) $fn$;
 revoke all on function public.dd_comm_is_conversation_member(uuid) from public;
 grant execute on function public.dd_comm_is_conversation_member(uuid) to authenticated;
 
 create or replace function public.dd_comm_is_group_member(p_group_id uuid)
 returns boolean language sql stable security definer set search_path = public, pg_temp
-as $ select exists(select 1 from public.group_members gm where gm.group_id=p_group_id and gm.employee_id=public.dd_comm_current_user_id()) $;
+as $fn$ select exists(select 1 from public.group_members gm where gm.group_id=p_group_id and gm.employee_id=public.dd_comm_current_user_id()) $fn$;
 revoke all on function public.dd_comm_is_group_member(uuid) from public;
 grant execute on function public.dd_comm_is_group_member(uuid) to authenticated;
 
