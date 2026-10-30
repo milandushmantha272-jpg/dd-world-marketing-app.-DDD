@@ -4,6 +4,10 @@ import 'package:file_picker/file_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:pdf/pdf.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:cross_file/cross_file.dart';
 import '../../authentication/domain/employee_profile.dart';
 import '../application/employee_center_providers.dart';
 import '../data/employee_center_repository.dart';
@@ -34,9 +38,28 @@ class _EmployeeCenterScreenState extends ConsumerState<EmployeeCenterScreen> wit
   const Divider(color:Colors.white30,height:28),
   Row(children:[CircleAvatar(radius:38,backgroundColor:Colors.white24,backgroundImage:c.employeePhotoPath!=null&&c.employeePhotoPath!.startsWith('http')?NetworkImage(c.employeePhotoPath!):null,child:c.employeePhotoPath==null?const Icon(Icons.person,color:Colors.white,size:38):null),const SizedBox(width:14),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(c.employeeName,style:const TextStyle(color:Colors.white,fontWeight:FontWeight.bold,fontSize:18)),idLine('Staff Code',c.staffCode),idLine('Position',c.position),idLine('Team',c.teamName),idLine('Card',c.cardNumber)]))]),
   if(c.qrToken.isNotEmpty) ...[const SizedBox(height:16),Center(child:Container(color:Colors.white,padding:const EdgeInsets.all(8),child:QrImageView(data:c.qrToken,size:140))),const Center(child:Text('Scan to verify employee identity',style:TextStyle(color:Colors.white70,fontSize:11)))],
-  const SizedBox(height:8),const Text('Verification is available to authenticated DD WORLD CONNECT employees.',style:TextStyle(color:Colors.white60,fontSize:10))
+  const SizedBox(height:8),const Text('Verification is available to authenticated DD WORLD CONNECT employees.',style:TextStyle(color:Colors.white60,fontSize:10)),
+  Align(alignment:Alignment.centerRight,child:TextButton.icon(onPressed:()=>sharePhysicalCard(c),icon:const Icon(Icons.print,color:Colors.white),label:const Text('Physical ID / Print PDF',style:TextStyle(color:Colors.white))))
  ])));
  Widget idLine(String a,String b)=>Padding(padding:const EdgeInsets.only(top:3),child:Text(a+': '+b,style:const TextStyle(color:Colors.white,fontSize:12)));
+ Future<void> sharePhysicalCard(EmployeeIdCardRecord card) async {
+  final doc=pw.Document();
+  doc.addPage(pw.Page(pageFormat:PdfPageFormat(85.6*PdfPageFormat.mm,54*PdfPageFormat.mm,marginAll:3*PdfPageFormat.mm),build:(ctx)=>pw.Row(crossAxisAlignment:pw.CrossAxisAlignment.start,children:[
+   pw.Expanded(child:pw.Column(crossAxisAlignment:pw.CrossAxisAlignment.start,children:[
+    pw.Text('DD WORLD MARKETING',style:pw.TextStyle(fontSize:8,fontWeight:pw.FontWeight.bold)),
+    pw.SizedBox(height:3),pw.Text(card.employeeName,style:pw.TextStyle(fontSize:9,fontWeight:pw.FontWeight.bold)),
+    pw.SizedBox(height:3),pw.Text('Staff Code: '+card.staffCode,style:const pw.TextStyle(fontSize:6.5)),
+    pw.Text('Position: '+card.position,style:const pw.TextStyle(fontSize:6.5)),
+    pw.Text('Team: '+card.teamName,style:const pw.TextStyle(fontSize:6.5)),
+    pw.Text('Card: '+card.cardNumber,style:const pw.TextStyle(fontSize:6.5)),
+    pw.Spacer(),pw.Text('Employee identification card',style:const pw.TextStyle(fontSize:5))
+   ])),
+   pw.SizedBox(width:3*PdfPageFormat.mm),
+   pw.BarcodeWidget(barcode:pw.Barcode.qrCode(),data:card.qrToken,width:25*PdfPageFormat.mm,height:25*PdfPageFormat.mm)
+  ])));
+  final bytes=await doc.save();
+  await Share.shareXFiles([XFile.fromData(bytes,name:'DD-WORLD-'+card.staffCode+'-ID.pdf',mimeType:'application/pdf')],text:'DD WORLD employee ID card');
+ }
  Future<void> issueCard() async {
   if(!owner)return;
   final staff=await repo.employees();if(!mounted||staff.isEmpty)return;
@@ -74,7 +97,7 @@ class _EmployeeCenterScreenState extends ConsumerState<EmployeeCenterScreen> wit
   final reason=TextEditingController();String type='annual';bool morning=true;DateTime start=DateTime.now().add(const Duration(days:1)),end=start;
   final ok=await showDialog<bool>(context:context,builder:(ctx)=>StatefulBuilder(builder:(ctx,set)=>AlertDialog(title:const Text('Apply for Leave'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
    DropdownButtonFormField<String>(value:type,decoration:const InputDecoration(labelText:'Leave type'),items:const[DropdownMenuItem(value:'annual',child:Text('Annual Leave')),DropdownMenuItem(value:'casual',child:Text('Casual Leave')),DropdownMenuItem(value:'sick',child:Text('Sick Leave')),DropdownMenuItem(value:'half_day',child:Text('Half Day Leave'))],onChanged:(v)=>set(()=>type=v??type)),
-   ListTile(title:const Text('Start date'),subtitle:Text(start.toString().substring(0,10)),onTap:()async{final d=await showDatePicker(context:ctx,initialDate:start,firstDate:DateTime.now().subtract(const Duration(days:365)),lastDate:DateTime.now().add(const Duration(days:730)));if(d!=null)set(()=>{start=d;if(end.isBefore(start))end=start;});}),
+   ListTile(title:const Text('Start date'),subtitle:Text(start.toString().substring(0,10)),onTap:()async{final d=await showDatePicker(context:ctx,initialDate:start,firstDate:DateTime.now().subtract(const Duration(days:365)),lastDate:DateTime.now().add(const Duration(days:730)));if(d!=null)set((){start=d;if(end.isBefore(start))end=start;});}),
    if(type!='half_day')ListTile(title:const Text('End date'),subtitle:Text(end.toString().substring(0,10)),onTap:()async{final d=await showDatePicker(context:ctx,initialDate:end.isBefore(start)?start:end,firstDate:start,lastDate:DateTime.now().add(const Duration(days:730)));if(d!=null)set(()=>end=d);}),
    if(type=='half_day')SwitchListTile(value:morning,title:const Text('Morning half day'),onChanged:(v)=>set(()=>morning=v)),
    TextField(controller:reason,maxLines:3,decoration:const InputDecoration(labelText:'Reason'))
