@@ -30,7 +30,7 @@ class EmployeeCenterRepository {
     final row = await client.from('employee_id_cards').select().eq('employee_id',employeeId).maybeSingle();
     if (row == null) return null;
     final emp = await _employee(employeeId);
-    return EmployeeIdCardRecord(id:row['id'],employeeId:employeeId,cardNumber:row['card_number'],qrToken:'',status:row['status'],employeeName:emp['name'],staffCode:emp['agent_code'] ?? '',position:rolePosition(emp['role']),teamName:emp['team_name'],employeePhotoPath:row['employee_photo_path'] ?? emp['photo_path'],companyLogoPath:row['company_logo_path'],issuedAt:DateTime.parse(row['issued_at']));
+    return EmployeeIdCardRecord(id:row['id'],employeeId:employeeId,cardNumber:row['card_number'],qrToken:row['qr_token'] ?? '',status:row['status'],employeeName:emp['name'],staffCode:emp['agent_code'] ?? '',position:rolePosition(emp['role']),teamName:emp['team_name'],employeePhotoPath:row['employee_photo_path'] ?? emp['photo_path'],companyLogoPath:row['company_logo_path'],issuedAt:DateTime.parse(row['issued_at']));
   }
 
   Future<EmployeeIdCardRecord> issueIdCard({required String employeeId,required String issuerId}) async {
@@ -39,7 +39,7 @@ class EmployeeCenterRepository {
     final hash = sha256.convert(token.codeUnits).toString();
     final code = (emp['agent_code'] as String?) ?? employeeId.substring(0,8);
     final cardNumber = 'DD-' + code.toUpperCase();
-    final row = await client.from('employee_id_cards').upsert({'employee_id':employeeId,'card_number':cardNumber,'employee_photo_path':emp['photo_path'],'qr_token_hash':hash,'status':'active','issued_by':issuerId,'updated_at':DateTime.now().toUtc().toIso8601String()},onConflict:'employee_id').select().single();
+    final row = await client.from('employee_id_cards').upsert({'employee_id':employeeId,'card_number':cardNumber,'employee_photo_path':emp['photo_path'],'qr_token_hash':hash,'qr_token':token,'status':'active','issued_by':issuerId,'updated_at':DateTime.now().toUtc().toIso8601String()},onConflict:'employee_id').select().single();
     return EmployeeIdCardRecord(id:row['id'],employeeId:employeeId,cardNumber:cardNumber,qrToken:token,status:row['status'],employeeName:emp['name'],staffCode:emp['agent_code'] ?? '',position:rolePosition(emp['role']),teamName:emp['team_name'],employeePhotoPath:row['employee_photo_path'],companyLogoPath:row['company_logo_path'],issuedAt:DateTime.parse(row['issued_at']));
   }
 
