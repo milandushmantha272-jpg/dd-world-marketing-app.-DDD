@@ -34,14 +34,37 @@ class EmployeeCenterRepository {
     return EmployeeIdCardRecord(id:row['id'],employeeId:employeeId,cardNumber:row['card_number'],qrToken:row['qr_token'] ?? '',status:row['status'],employeeName:emp['name'],staffCode:emp['agent_code'] ?? '',position:rolePosition(emp['role']),teamName:emp['team_name'],employeePhotoPath:row['employee_photo_path'] ?? emp['photo_path'],companyLogoPath:row['company_logo_path'],issuedAt:DateTime.parse(row['issued_at']));
   }
 
-  Future<EmployeeIdCardRecord> issueIdCard({required String employeeId,required String issuerId}) async {
-    final emp = await _employee(employeeId);
-    final token = _uuid.v4() + _uuid.v4();
-    final hash = sha256.convert(token.codeUnits).toString();
-    final code = (emp['agent_code'] as String?) ?? employeeId.substring(0,8);
-    final cardNumber = 'DD-' + code.toUpperCase();
-    final row = await client.from('employee_id_cards').upsert({'employee_id':employeeId,'card_number':cardNumber,'employee_photo_path':emp['photo_path'],'qr_token_hash':hash,'qr_token':token,'status':'active','issued_by':issuerId,'updated_at':DateTime.now().toUtc().toIso8601String()},onConflict:'employee_id').select().single();
-    return EmployeeIdCardRecord(id:row['id'],employeeId:employeeId,cardNumber:cardNumber,qrToken:token,status:row['status'],employeeName:emp['name'],staffCode:emp['agent_code'] ?? '',position:rolePosition(emp['role']),teamName:emp['team_name'],employeePhotoPath:row['employee_photo_path'],companyLogoPath:row['company_logo_path'],issuedAt:DateTime.parse(row['issued_at']));
+  Future<EmployeeIdCardRecord> issueIdCard({required String employeeId}) async {
+    // The database RPC performs the authoritative Owner/employee-status checks,
+    // generates the QR token, and writes the card atomically.
+    final response = await client.rpc(
+      'issue_employee_id_card',
+      params: {'p_employee_id': employeeId},
+    );
+    final rows = List<Map<String, dynamic>>.from(response as List);
+    if (rows.isEmpty) {
+      throw StateError('The ID card could not be issued.');
+    }
+    // The RPC returns the one-time token for the QR payload. Re-read the card
+    // through the normal RLS-protected query to hydrate employee/team details.
+    final card = await myIdCard(employeeId);
+    if (card == null) {
+      throw StateError('The ID card was issued but could not be loaded.');
+    }
+    return EmployeeIdCardRecord(
+      id: card.id,
+      employeeId: card.employeeId,
+      cardNumber: card.cardNumber,
+      qrToken: rows.first['qr_token'] as String,
+      status: card.status,
+      employeeName: card.employeeName,
+      staffCode: card.staffCode,
+      position: card.position,
+      teamName: card.teamName,
+      employeePhotoPath: card.employeePhotoPath,
+      companyLogoPath: card.companyLogoPath,
+      issuedAt: card.issuedAt,
+    );
   }
 
   Future<EmployeeQrResult> verifyQr(String token) async {
