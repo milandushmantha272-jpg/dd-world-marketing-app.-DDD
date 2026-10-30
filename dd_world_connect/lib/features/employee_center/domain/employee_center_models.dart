@@ -18,7 +18,8 @@ class EmployeeDocumentRecord {
 
 class LeaveRequestRecord {
   const LeaveRequestRecord({required this.id,required this.leaveType,required this.startDate,required this.endDate,required this.reason,required this.status,required this.reviewStage,required this.createdAt,required this.employeeId,this.employeeName,this.reviewNote});
-  final String id,leaveType,reason,status,reviewStage,employeeId;\n  final String? employeeName;
+  final String id,leaveType,reason,status,reviewStage,employeeId;
+  final String? employeeName;
   final DateTime startDate,endDate,createdAt;
   final String? reviewNote;
   factory LeaveRequestRecord.fromJson(Map<String,dynamic> j)=>LeaveRequestRecord(id:j['id'] as String,leaveType:j['leave_type'] as String,startDate:DateTime.parse(j['start_date'] as String),endDate:DateTime.parse(j['end_date'] as String),reason:j['reason'] as String,status:j['status'] as String,reviewStage:j['review_stage'] as String,createdAt:DateTime.parse(j['created_at'] as String),employeeId:j['user_id'] as String,employeeName:(j['users'] as Map<String,dynamic>?)?['name'] as String?,reviewNote:j['review_note'] as String?);
