@@ -51,7 +51,8 @@ class _EmployeeCenterScreenState extends ConsumerState<EmployeeCenterScreen> wit
     pw.SizedBox(height:3),pw.Text('Staff Code: '+card.staffCode,style:const pw.TextStyle(fontSize:6.5)),
     pw.Text('Position: '+card.position,style:const pw.TextStyle(fontSize:6.5)),
     pw.Text('Team: '+card.teamName,style:const pw.TextStyle(fontSize:6.5)),
-    pw.Text('Card: '+card.cardNumber,style:const pw.TextStyle(fontSize:6.5)),\n    pw.Text('Status: '+card.status.toUpperCase(),style:const pw.TextStyle(fontSize:6.5)),
+    pw.Text('Card: '+card.cardNumber,style:const pw.TextStyle(fontSize:6.5)),
+    pw.Text('Status: '+card.status.toUpperCase(),style:const pw.TextStyle(fontSize:6.5)),
     pw.Spacer(),pw.Text('Employee identification card',style:const pw.TextStyle(fontSize:5))
    ])),
    pw.SizedBox(width:3*PdfPageFormat.mm),
