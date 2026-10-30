@@ -34,7 +34,7 @@ class CommunicationRepository {
   }
 
   Future<List<Map<String,dynamic>>> staff(String employeeId) async {
-    final rows=await client.from('users').select('id,name,role,team_id').eq('status','active').order('name');
+    final rows=await client.from('users').select('id,name,role,team_id').eq('status','active').eq('employment_status','ACTIVE').eq('id_approval_status','APPROVED').order('name');
     return rows.where((r)=>r['id']!=employeeId).toList();
   }
 
@@ -95,7 +95,7 @@ class CommunicationRepository {
     if(role!='owner'&&!(role=='team_leader'&&groupType=='team')) throw const AuthException('Only Owner can create organization groups; Team Leaders can create their own team groups.');
     if(role=='team_leader'&&(teamId==null||teamId!=await this.teamId(employeeId))) throw const AuthException('Team Leader group must belong to their own team.');
     final group=await client.from('groups').insert({'name':name.trim(),'group_type':groupType,'team_id':groupType=='team'?teamId:null,'created_by':employeeId,'is_announcement_only':false}).select('id').single();
-    var query=client.from('users').select('id').eq('status','active').eq('employment_status','ACTIVE');
+    var query=client.from('users').select('id').eq('status','active').eq('employment_status','ACTIVE').eq('id_approval_status','APPROVED');
     if(groupType=='team') query=query.eq('team_id',teamId!);
     if(groupType=='team_leaders') query=query.eq('role','team_leader');
     if(groupType=='direct_agents') query=query.eq('role','direct_agent');
