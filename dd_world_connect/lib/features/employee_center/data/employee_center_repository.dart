@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -96,6 +97,7 @@ class EmployeeCenterRepository {
 
   Future<String> documentUrl(String path) => client.storage.from('employee-documents').createSignedUrl(path,300);
   Future<String> employeePhotoUrl(String path) => client.storage.from('employee-profile-photos').createSignedUrl(path,300);
+  Future<Uint8List> employeePhotoBytes(String path) => client.storage.from('employee-profile-photos').download(path);
 
   Future<void> reviewDocument({required String documentId,required bool approve,String? note}) async {
     await client.rpc('review_employee_document',params:{'p_document_id':documentId,'p_decision':approve?'approved':'rejected','p_note':note});
