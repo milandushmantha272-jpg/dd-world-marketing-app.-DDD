@@ -1,0 +1,68 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../authentication/domain/employee_profile.dart';
+import '../application/communication_providers.dart';
+import '../data/communication_repository.dart';
+import '../domain/communication_models.dart';
+
+class CommunicationCenterScreen extends ConsumerStatefulWidget {
+ const CommunicationCenterScreen({super.key,required this.profile});
+ final EmployeeProfile profile;
+ @override ConsumerState<CommunicationCenterScreen> createState()=>_CommunicationCenterScreenState();
+}
+class _CommunicationCenterScreenState extends ConsumerState<CommunicationCenterScreen> with SingleTickerProviderStateMixin {
+ late final TabController tabs;
+ CommunicationRepository get repo=>ref.read(communicationRepositoryProvider);
+ bool get manager=>widget.profile.role==EmployeeRole.owner||widget.profile.role==EmployeeRole.teamLeader;
+ @override void initState(){super.initState();tabs=TabController(length:5,vsync:this);}
+ @override void dispose(){tabs.dispose();super.dispose();}
+ Future<void> run(Future<void> Function() action) async {try{await action();if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Saved')));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(e.toString())));}}
+ @override Widget build(BuildContext context)=>Scaffold(appBar:AppBar(title:const Text('Communication Center'),bottom:TabBar(controller:tabs,isScrollable:true,tabs:const[Tab(icon:Icon(Icons.event),text:'Meetings'),Tab(icon:Icon(Icons.chat),text:'Private'),Tab(icon:Icon(Icons.groups),text:'Groups'),Tab(icon:Icon(Icons.notifications),text:'Alerts'),Tab(icon:Icon(Icons.dynamic_feed),text:'Feed')])),body:TabBarView(controller:tabs,children:[meetings(),privateChats(),groupChats(),alerts(),feed()]));
+
+ Widget meetings()=>RefreshIndicator(onRefresh:()=>ref.refresh(meetingsProvider(widget.profile.id).future),child:ListView(padding:const EdgeInsets.all(16),children:[
+  Row(children:[const Expanded(child:Text('Meetings Dashboard',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),if(manager)IconButton(onPressed:createMeeting,icon:const Icon(Icons.add_circle_outline))]),
+  ref.watch(meetingsProvider(widget.profile.id)).when(loading:()=>const Center(child:CircularProgressIndicator()),error:(e,_)=>Text('Meetings unavailable: '+e.toString()),data:(items)=>items.isEmpty?const Text('No meetings scheduled.'):Column(children:items.map((m)=>Card(child:ListTile(leading:const Icon(Icons.event),title:Text(m.title),subtitle:Text(m.type.toUpperCase()+' • '+m.startsAt.toLocal().toString()),trailing:TextButton(onPressed:()=>run(()=>repo.markAttendance(meetingId:m.id,employeeId:widget.profile.id)),child:const Text('Attend'))))).toList()))
+ ]));
+
+ Future<void> createMeeting() async {
+  final title=TextEditingController(),desc=TextEditingController(),location=TextEditingController(),url=TextEditingController();
+  String type='physical';final start=DateTime.now().add(const Duration(hours:1));final end=start.add(const Duration(hours:1));
+  final team=widget.profile.role==EmployeeRole.teamLeader?await repo.teamId(widget.profile.id):null;
+  if(!mounted)return;
+  final ok=await showDialog<bool>(context:context,builder:(ctx)=>StatefulBuilder(builder:(ctx,set)=>AlertDialog(title:const Text('Create Meeting'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
+   TextField(controller:title,decoration:const InputDecoration(labelText:'Title')),
+   TextField(controller:desc,decoration:const InputDecoration(labelText:'Agenda'),maxLines:3),
+   DropdownButtonFormField<String>(value:type,decoration:const InputDecoration(labelText:'Meeting type'),items:const[DropdownMenuItem(value:'physical',child:Text('Physical Meeting')),DropdownMenuItem(value:'online',child:Text('Online Meeting')),DropdownMenuItem(value:'training',child:Text('Training Meeting')),DropdownMenuItem(value:'emergency',child:Text('Emergency Meeting'))],onChanged:(v)=>set(()=>type=v??type)),
+   TextField(controller:location,decoration:const InputDecoration(labelText:'Location')),
+   TextField(controller:url,decoration:const InputDecoration(labelText:'Online meeting URL')),
+   Text('Start: '+start.toLocal().toString()),Text('End: '+end.toLocal().toString())
+  ])),actions:[TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Create'))])));
+  if(ok!=true)return;
+  await run(()async{await repo.createMeeting(employeeId:widget.profile.id,role:widget.profile.role.apiValue,title:title.text,description:desc.text,type:type,startsAt:start,endsAt:end,location:location.text.isEmpty?null:location.text,meetingUrl:url.text.isEmpty?null:url.text,teamId:team);ref.invalidate(meetingsProvider(widget.profile.id));});
+ }
+
+ Widget privateChats()=>ref.watch(staffDirectoryProvider(widget.profile.id)).when(loading:()=>const Center(child:CircularProgressIndicator()),error:(e,_)=>Center(child:Text('Staff directory unavailable: '+e.toString())),data:(staff)=>ListView(padding:const EdgeInsets.all(16),children:[const Text('One-to-one Messaging',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold)),...staff.map((p)=>Card(child:ListTile(leading:const CircleAvatar(child:Icon(Icons.person)),title:Text(p['name'] as String),subtitle:Text((p['role'] as String).replaceAll('_',' ')),trailing:const Icon(Icons.chevron_right),onTap:()=>openDirect(p['id'] as String,p['name'] as String))))]));
+ Future<void> openDirect(String other,String name) async {try{final id=await repo.openOrCreateConversation(employeeId:widget.profile.id,otherEmployeeId:other);if(!mounted)return;await Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>_ChatScreen(title:name,load:()=>repo.directMessages(id).then((rows)=>rows.map((m)=>{'body':m.body,'sender_id':m.senderId}).toList()),send:(body)=>repo.sendDirectMessage(conversationId:id,employeeId:widget.profile.id,body:body),employeeId:widget.profile.id)));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(e.toString())));}}
+
+ Widget groupChats()=>ref.watch(groupsProvider(widget.profile.id)).when(loading:()=>const Center(child:CircularProgressIndicator()),error:(e,_)=>Center(child:Text('Groups unavailable: '+e.toString())),data:(items)=>ListView(padding:const EdgeInsets.all(16),children:[const Text('Group Messaging',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold)),...items.map((g)=>Card(child:ListTile(leading:const Icon(Icons.groups),title:Text(g['name'] as String),subtitle:Text((g['group_type'] as String).replaceAll('_',' ')),onTap:()=>openGroup(g['id'] as String,g['name'] as String))))]));
+ Future<void> openGroup(String id,String name) async {await Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>_ChatScreen(title:name,load:()=>repo.groupMessages(id),send:(body)=>repo.sendGroupMessage(groupId:id,employeeId:widget.profile.id,body:body),employeeId:widget.profile.id)));}
+
+ Widget alerts()=>RefreshIndicator(onRefresh:()=>ref.refresh(notificationsProvider(widget.profile.id).future),child:ref.watch(notificationsProvider(widget.profile.id)).when(loading:()=>const Center(child:CircularProgressIndicator()),error:(e,_)=>Center(child:Text('Notifications unavailable: '+e.toString())),data:(items)=>ListView(padding:const EdgeInsets.all(16),children:[const Text('Notification Center',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold)),...items.map((n)=>Card(child:ListTile(leading:Icon(n.isRead?Icons.notifications_none:Icons.notifications_active),title:Text(n.title),subtitle:Text(n.body+' • '+n.createdAt.toLocal().toString()),onTap:()=>run(()async{await repo.markNotificationRead(n.id);ref.invalidate(notificationsProvider(widget.profile.id));}))))])));
+
+ Widget feed()=>RefreshIndicator(onRefresh:()=>ref.refresh(feedProvider.future),child:ref.watch(feedProvider).when(loading:()=>const Center(child:CircularProgressIndicator()),error:(e,_)=>Center(child:Text('Feed unavailable: '+e.toString())),data:(posts)=>ListView(padding:const EdgeInsets.all(16),children:[Row(children:[const Expanded(child:Text('DD WORLD Feed',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),IconButton(onPressed:createPost,icon:const Icon(Icons.add_circle_outline))]),...posts.map((p)=>Card(child:Padding(padding:const EdgeInsets.all(14),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(p.authorName,style:const TextStyle(fontWeight:FontWeight.bold)),if(p.isAnnouncement)const Chip(label:Text('ANNOUNCEMENT')),if(p.isSuccessStory)const Chip(label:Text('SUCCESS')),Text(p.content),Text(p.createdAt.toLocal().toString(),style:Theme.of(context).textTheme.bodySmall),Wrap(children:[TextButton.icon(onPressed:()=>run(()async{await repo.toggleLike(postId:p.id,employeeId:widget.profile.id);ref.invalidate(feedProvider);}),icon:const Icon(Icons.thumb_up_alt_outlined),label:const Text('Like')),TextButton.icon(onPressed:()=>comment(p),icon:const Icon(Icons.comment_outlined),label:const Text('Comment'))])]))))])));
+ Future<void> createPost() async {final c=TextEditingController();bool announcement=false,story=false;final ok=await showDialog<bool>(context:context,builder:(ctx)=>StatefulBuilder(builder:(ctx,set)=>AlertDialog(title:const Text('Create Post'),content:Column(mainAxisSize:MainAxisSize.min,children:[TextField(controller:c,maxLines:4,decoration:const InputDecoration(hintText:'Share an update')),CheckboxListTile(value:announcement,title:const Text('Announcement'),onChanged:(v)=>set(()=>announcement=v??false)),CheckboxListTile(value:story,title:const Text('Success story'),onChanged:(v)=>set(()=>story=v??false))]),actions:[TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Publish'))])));if(ok==true&&c.text.trim().isNotEmpty)await run(()async{await repo.createPost(employeeId:widget.profile.id,authorName:widget.profile.fullName,content:c.text,announcement:announcement,successStory:story);ref.invalidate(feedProvider);});}
+ Future<void> comment(FeedPost p) async {final c=TextEditingController();final ok=await showDialog<bool>(context:context,builder:(ctx)=>AlertDialog(title:const Text('Comment'),content:TextField(controller:c),actions:[TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Send'))]));if(ok==true&&c.text.trim().isNotEmpty)await run(()=>repo.comment(postId:p.id,employeeId:widget.profile.id,body:c.text));}
+}
+
+class _ChatScreen extends StatefulWidget {
+ const _ChatScreen({required this.title,required this.load,required this.send,required this.employeeId});
+ final String title,employeeId;final Future<List<Map<String,dynamic>>> Function() load;final Future<void> Function(String) send;
+ @override State<_ChatScreen> createState()=>_ChatScreenState();
+}
+class _ChatScreenState extends State<_ChatScreen>{
+ final input=TextEditingController();bool sending=false;late Future<List<Map<String,dynamic>>> messages;
+ @override void initState(){super.initState();messages=widget.load();}
+ @override void dispose(){input.dispose();super.dispose();}
+ void reload(){setState(()=>messages=widget.load());}
+ @override Widget build(BuildContext context)=>Scaffold(appBar:AppBar(title:Text(widget.title)),body:Column(children:[Expanded(child:FutureBuilder<List<Map<String,dynamic>>>(future:messages,builder:(ctx,s)=>s.hasError?Center(child:Text('Messages unavailable: '+s.error.toString())):!s.hasData?const Center(child:CircularProgressIndicator()):ListView(padding:const EdgeInsets.all(12),children:s.data!.map((m)=>Align(alignment:m['sender_id']==widget.employeeId?Alignment.centerRight:Alignment.centerLeft,child:Card(child:Padding(padding:const EdgeInsets.all(10),child:Text(m['body'] as String? ?? ''))))).toList()))),SafeArea(child:Row(children:[Expanded(child:TextField(controller:input,decoration:const InputDecoration(hintText:'Write a message'))),IconButton(onPressed:sending?null:()async{setState(()=>sending=true);try{await widget.send(input.text);input.clear();reload();}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(e.toString())));}finally{if(mounted)setState(()=>sending=false);}},icon:const Icon(Icons.send))]))]));
+}
