@@ -34,7 +34,7 @@ class _EmployeeCenterScreenState extends ConsumerState<EmployeeCenterScreen> wit
   ref.watch(employeeIdCardProvider(widget.profile.id)).when(loading:()=>const LinearProgressIndicator(),error:(e,_)=>Text(e.toString()),data:(card)=>card==null?const Card(child:Padding(padding:EdgeInsets.all(20),child:Text('Your digital employee ID has not been issued. Contact the Owner.'))):idCardWidget(card))
  ]);
  Widget idCardWidget(EmployeeIdCardRecord c)=>Card(color:const Color(0xFF102F56),child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-  const Row(children:[CircleAvatar(backgroundColor:Colors.white,child:Icon(Icons.business,color:Color(0xFF1F5AA6))),SizedBox(width:10),Expanded(child:Text('DD WORLD MARKETING',style:TextStyle(color:Colors.white,fontWeight:FontWeight.bold))),Text('ACTIVE',style:TextStyle(color:Colors.lightGreenAccent))]),
+  Row(children:[const CircleAvatar(backgroundColor:Colors.white,child:Icon(Icons.business,color:Color(0xFF1F5AA6))),const SizedBox(width:10),const Expanded(child:Text('DD WORLD MARKETING',style:TextStyle(color:Colors.white,fontWeight:FontWeight.bold))),Text(c.status.toUpperCase(),style:const TextStyle(color:Colors.lightGreenAccent))]),
   const Divider(color:Colors.white30,height:28),
   Row(children:[employeePhoto(c),const SizedBox(width:14),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(c.employeeName,style:const TextStyle(color:Colors.white,fontWeight:FontWeight.bold,fontSize:18)),idLine('Staff Code',c.staffCode),idLine('Position',c.position),idLine('Team',c.teamName),idLine('Card',c.cardNumber)]))]),
   if(c.qrToken.isNotEmpty) ...[const SizedBox(height:16),Center(child:Container(color:Colors.white,padding:const EdgeInsets.all(8),child:QrImageView(data:c.qrToken,size:140))),const Center(child:Text('Scan to verify employee identity',style:TextStyle(color:Colors.white70,fontSize:11)))],
@@ -51,7 +51,7 @@ class _EmployeeCenterScreenState extends ConsumerState<EmployeeCenterScreen> wit
     pw.SizedBox(height:3),pw.Text('Staff Code: '+card.staffCode,style:const pw.TextStyle(fontSize:6.5)),
     pw.Text('Position: '+card.position,style:const pw.TextStyle(fontSize:6.5)),
     pw.Text('Team: '+card.teamName,style:const pw.TextStyle(fontSize:6.5)),
-    pw.Text('Card: '+card.cardNumber,style:const pw.TextStyle(fontSize:6.5)),
+    pw.Text('Card: '+card.cardNumber,style:const pw.TextStyle(fontSize:6.5)),\n    pw.Text('Status: '+card.status.toUpperCase(),style:const pw.TextStyle(fontSize:6.5)),
     pw.Spacer(),pw.Text('Employee identification card',style:const pw.TextStyle(fontSize:5))
    ])),
    pw.SizedBox(width:3*PdfPageFormat.mm),
