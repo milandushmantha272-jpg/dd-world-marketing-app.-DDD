@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/communication_models.dart';
 
@@ -49,9 +50,9 @@ class CommunicationRepository {
     return rows.map(CommunicationMessage.fromJson).toList();
   }
 
-  Future<void> sendDirectMessage({required String conversationId,required String employeeId,required String body}) async {
-    if(body.trim().isEmpty)return;
-    await client.from('conversation_messages').insert({'conversation_id':conversationId,'sender_id':employeeId,'body':body.trim(),'message_type':'text'});
+  Future<void> sendDirectMessage({required String conversationId,required String employeeId,required String body,String? attachmentPath,String? mimeType}) async {
+    if(body.trim().isEmpty&&attachmentPath==null)return;
+    await client.from('conversation_messages').insert({'conversation_id':conversationId,'sender_id':employeeId,'body':body.trim(),'message_type':attachmentPath==null?'text':'image','attachment_path':attachmentPath,'attachment_mime_type':mimeType});
     await client.from('conversations').update({'last_message_at':DateTime.now().toUtc().toIso8601String()}).eq('id',conversationId);
   }
 
@@ -65,9 +66,9 @@ class CommunicationRepository {
     return rows;
   }
 
-  Future<void> sendGroupMessage({required String groupId,required String employeeId,required String body}) async {
-    if(body.trim().isEmpty)return;
-    await client.from('group_messages').insert({'group_id':groupId,'sender_id':employeeId,'body':body.trim(),'message_type':'text'});
+  Future<void> sendGroupMessage({required String groupId,required String employeeId,required String body,String? attachmentPath,String? mimeType,bool announcement=false}) async {
+    if(body.trim().isEmpty&&attachmentPath==null)return;
+    await client.from('group_messages').insert({'group_id':groupId,'sender_id':employeeId,'body':body.trim(),'message_type':announcement?'announcement':attachmentPath==null?'text':'image','attachment_path':attachmentPath,'attachment_mime_type':mimeType});
   }
 
   Future<List<FeedPost>> feed() async {
@@ -75,9 +76,35 @@ class CommunicationRepository {
     return rows.map(FeedPost.fromJson).toList();
   }
 
-  Future<void> createPost({required String employeeId,required String authorName,required String content,required bool announcement,required bool successStory}) async {
-    await client.from('community_posts').insert({'author_user_id':employeeId,'author_name':authorName,'content':content.trim(),'post_type':announcement?'announcement':successStory?'success_story':'discussion','is_announcement':announcement,'is_success_story':successStory,'audience':'all','status':'published'});
+  Future<void> createPost({required String employeeId,required String authorName,required String content,required bool announcement,required bool successStory,String? imagePath,String? videoPath}) async {
+    await client.from('community_posts').insert({'author_user_id':employeeId,'author_name':authorName,'content':content.trim(),'post_type':announcement?'announcement':successStory?'success_story':'discussion','is_announcement':announcement,'is_success_story':successStory,'image_path':imagePath,'video_path':videoPath,'audience':'all','status':'published'});
   }
+
+
+  Future<void> createGroup({required String employeeId,required String role,required String name,required String groupType,String? teamId}) async {
+    if(role!='owner'&&!(role=='team_leader'&&groupType=='team')) throw const AuthException('Only Owner can create organization groups; Team Leaders can create their own team groups.');
+    if(role=='team_leader'&&(teamId==null||teamId!=await this.teamId(employeeId))) throw const AuthException('Team Leader group must belong to their own team.');
+    final group=await client.from('groups').insert({'name':name.trim(),'group_type':groupType,'team_id':groupType=='team'?teamId:null,'created_by':employeeId,'is_announcement_only':false}).select('id').single();
+    var query=client.from('users').select('id').eq('status','active').eq('employment_status','ACTIVE');
+    if(groupType=='team') query=query.eq('team_id',teamId!);
+    if(groupType=='team_leaders') query=query.eq('role','team_leader');
+    if(groupType=='direct_agents') query=query.eq('role','direct_agent');
+    final people=await query;
+    final members=people.map((p)=>{'group_id':group['id'],'employee_id':p['id'],'added_by':employeeId}).toList();
+    if(!members.any((m)=>m['employee_id']==employeeId)) members.add({'group_id':group['id'],'employee_id':employeeId,'added_by':employeeId});
+    await client.from('group_members').insert(members);
+  }
+
+  Future<String> uploadMedia({required String authUid,required Uint8List bytes,required String fileName,required String mimeType}) async {
+    if(bytes.isEmpty||bytes.length>52428800) throw const FormatException('Media must be between 1 byte and 50 MB.');
+    if(!mimeType.startsWith('image/')&&!mimeType.startsWith('video/')) throw const FormatException('Only image and video files are supported.');
+    final safe=fileName.replaceAll(RegExp(r'[^A-Za-z0-9._-]'),'_');
+    final path=authUid+'/'+DateTime.now().microsecondsSinceEpoch.toString()+'_'+safe;
+    await client.storage.from('dd-world-communication').uploadBinary(path,bytes,fileOptions:FileOptions(contentType:mimeType,upsert:false));
+    return path;
+  }
+
+  Future<String> signedMediaUrl(String path) => client.storage.from('dd-world-communication').createSignedUrl(path,3600);
 
   Future<void> comment({required String postId,required String employeeId,required String body}) async {
     await client.from('community_comments').insert({'post_id':postId,'author_user_id':employeeId,'body':body.trim()});
