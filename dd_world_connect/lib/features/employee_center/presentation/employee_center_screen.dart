@@ -41,7 +41,7 @@ class _EmployeeCenterScreenState extends ConsumerState<EmployeeCenterScreen> wit
   Align(alignment:Alignment.centerRight,child:TextButton.icon(onPressed:()=>sharePhysicalCard(c),icon:const Icon(Icons.print,color:Colors.white),label:const Text('Physical ID / Print PDF',style:TextStyle(color:Colors.white))))
  ])));
  Widget employeePhoto(EmployeeIdCardRecord card){final path=card.employeePhotoPath;if(path==null||path.isEmpty)return const CircleAvatar(radius:38,backgroundColor:Colors.white24,child:Icon(Icons.person,color:Colors.white,size:38));if(path.startsWith('http'))return CircleAvatar(radius:38,backgroundImage:NetworkImage(path));return FutureBuilder<String>(future:repo.employeePhotoUrl(path),builder:(ctx,s)=>CircleAvatar(radius:38,backgroundColor:Colors.white24,backgroundImage:s.hasData?NetworkImage(s.data!):null,child:s.hasData?null:const Icon(Icons.person,color:Colors.white,size:38)));}
- Widget idLine(String a,String b)=>Padding(padding:const EdgeInsets.only(top:3),child:Text(a+': '+b,style:const TextStyle(color:Colors.white,fontSize:12)));
+ Widget idLine(String a,String b)=>Padding(padding:const EdgeInsets.only(top:3),child:Text('$a: $b,style:const TextStyle(color:Colors.white,fontSize:12)));
  Future<void> sharePhysicalCard(EmployeeIdCardRecord card) async {
   final doc=pw.Document();
   pw.MemoryImage? photo;
@@ -53,18 +53,18 @@ class _EmployeeCenterScreenState extends ConsumerState<EmployeeCenterScreen> wit
    pw.Expanded(child:pw.Column(crossAxisAlignment:pw.CrossAxisAlignment.start,children:[
     pw.Text('DD WORLD MARKETING',style:pw.TextStyle(fontSize:8,fontWeight:pw.FontWeight.bold)),
     pw.SizedBox(height:3),pw.Text(card.employeeName,style:pw.TextStyle(fontSize:9,fontWeight:pw.FontWeight.bold)),
-    pw.SizedBox(height:3),pw.Text('Staff Code: '+card.staffCode,style:const pw.TextStyle(fontSize:6.5)),
-    pw.Text('Position: '+card.position,style:const pw.TextStyle(fontSize:6.5)),
-    pw.Text('Team: '+card.teamName,style:const pw.TextStyle(fontSize:6.5)),
-    pw.Text('Card: '+card.cardNumber,style:const pw.TextStyle(fontSize:6.5)),
-    pw.Text('Status: '+card.status.toUpperCase(),style:const pw.TextStyle(fontSize:6.5)),
+    pw.SizedBox(height:3),pw.Text('Staff Code: ${card.staffCode}',style:const pw.TextStyle(fontSize:6.5)),
+    pw.Text('Position: ${card.position}',style:const pw.TextStyle(fontSize:6.5)),
+    pw.Text('Team: ${card.teamName}',style:const pw.TextStyle(fontSize:6.5)),
+    pw.Text('Card: ${card.cardNumber}',style:const pw.TextStyle(fontSize:6.5)),
+    pw.Text('Status: ${card.status.toUpperCase()}',style:const pw.TextStyle(fontSize:6.5)),
     pw.Spacer(),pw.Text('Employee identification card',style:const pw.TextStyle(fontSize:5))
    ])),
    pw.SizedBox(width:3*PdfPageFormat.mm),
    pw.BarcodeWidget(barcode:pw.Barcode.qrCode(),data:card.qrToken,width:25*PdfPageFormat.mm,height:25*PdfPageFormat.mm)
   ])));
   final bytes=await doc.save();
-  await Share.shareXFiles([XFile.fromData(bytes,name:'DD-WORLD-'+card.staffCode+'-ID.pdf',mimeType:'application/pdf')],text:'DD WORLD employee ID card');
+  await Share.shareXFiles([XFile.fromData(bytes,name:'DD-WORLD-${card.staffCode}-ID.pdf',mimeType:'application/pdf')],text:'DD WORLD employee ID card');
  }
  Future<void> issueCard() async {
   if(!owner)return;
@@ -84,7 +84,7 @@ class _EmployeeCenterScreenState extends ConsumerState<EmployeeCenterScreen> wit
   Future<void> uploadDocument() async {
   final pick=await FilePicker.platform.pickFiles(withData:true,type:FileType.custom,allowedExtensions:['pdf','jpg','jpeg','png','webp']);if(pick==null||pick.files.isEmpty)return;
   String type='nic_front';if(!mounted)return;
-  final selected=await showDialog<String>(context:context,builder:(ctx)=>StatefulBuilder(builder:(ctx,set)=>AlertDialog(title:const Text('Select document type'),content:DropdownButtonFormField<String>(value:type,items:employeeDocumentTypes.entries.map((e)=>DropdownMenuItem(value:e.key,child:Text(e.value))).toList(),onChanged:(v)=>set(()=>type=v??type)),actions:[TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(ctx,type),child:const Text('Upload'))])));
+  final selected=await showDialog<String>(context:context,builder:(ctx)=>StatefulBuilder(builder:(ctx,set)=>AlertDialog(title:const Text('Select document type'),content:DropdownButtonFormField<String>(initialValue:type,items:employeeDocumentTypes.entries.map((e)=>DropdownMenuItem(value:e.key,child:Text(e.value))).toList(),onChanged:(v)=>set(()=>type=v??type)),actions:[TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(ctx,type),child:const Text('Upload'))])));
   if(selected==null)return;
   await run(()async{await repo.uploadDocument(employeeId:widget.profile.id,file:pick.files.single,type:selected);ref.invalidate(employeeDocumentsProvider((employeeId:widget.profile.id,owner:owner)));});
  }
@@ -157,7 +157,7 @@ class _QrPaneState extends State<_QrPane> {
   SizedBox(height:300,child:ClipRRect(borderRadius:BorderRadius.circular(16),child:MobileScanner(onDetect:(capture){if(capture.barcodes.isNotEmpty){final v=capture.barcodes.first.rawValue;if(v!=null)scan(v);}}))),
   if(busy)const Center(child:CircularProgressIndicator()),
   if(error!=null)Text(error!,style:const TextStyle(color:Colors.red)),
-  if(result!=null)Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(result!.verified?'VERIFIED EMPLOYEE':'NOT ACTIVE',style:TextStyle(fontWeight:FontWeight.bold,color:result!.verified?Colors.green:Colors.red)),Text('Name: '+result!.employeeName),Text('Staff Code: '+result!.staffCode),Text('Team: '+result!.teamName),Text('Position: '+result!.position),Text('Status: '+result!.status)]))),
+  if(result!=null)Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(result!.verified?'VERIFIED EMPLOYEE':'NOT ACTIVE',style:TextStyle(fontWeight:FontWeight.bold,color:result!.verified?Colors.green:Colors.red)),Text('Name: ${result!.employeeName}'),Text('Staff Code: ${result!.staffCode}'),Text('Team: ${result!.teamName}'),Text('Position: ${result!.position}'),Text('Status: ${result!.status}')]))),
   OutlinedButton.icon(onPressed:()=>setState((){result=null;error=null;scanned=false;}),icon:const Icon(Icons.refresh),label:const Text('Scan another ID'))
  ]);
 }
