@@ -96,12 +96,12 @@ class EmployeeCenterRepository {
 
   Future<String> documentUrl(String path) => client.storage.from('employee-documents').createSignedUrl(path,300);
 
-  Future<void> reviewDocument({required String documentId,required String reviewerId,required bool approve,String? note}) async {
+  Future<void> reviewDocument({required String documentId,required bool approve,String? note}) async {
     await client.rpc('review_employee_document',params:{'p_document_id':documentId,'p_decision':approve?'approved':'rejected','p_note':note});
   }
 
   Future<List<LeaveRequestRecord>> leaves(String employeeId,{required bool owner,required bool teamLeader}) async {
-    var query = client.from('leave_requests').select();
+    var query = client.from('leave_requests').select('*,users!leave_requests_user_id_fkey(name)');
     if (!owner && !teamLeader) query = query.eq('user_id',employeeId);
     final rows = await query.order('created_at',ascending:false);
     return List<Map<String,dynamic>>.from(rows).map(LeaveRequestRecord.fromJson).toList();
