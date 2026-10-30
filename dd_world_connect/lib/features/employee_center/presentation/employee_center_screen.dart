@@ -7,7 +7,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:cross_file/cross_file.dart';
 import '../../authentication/domain/employee_profile.dart';
 import '../application/employee_center_providers.dart';
 import '../data/employee_center_repository.dart';
@@ -49,7 +48,7 @@ class _EmployeeCenterScreenState extends ConsumerState<EmployeeCenterScreen> wit
   final photoPath=card.employeePhotoPath;
   if(photoPath!=null&&photoPath.isNotEmpty&&!photoPath.startsWith('http')){try{photo=pw.MemoryImage(await repo.employeePhotoBytes(photoPath));}catch(_){photo=null;}}
   doc.addPage(pw.Page(pageFormat:PdfPageFormat(85.6*PdfPageFormat.mm,54*PdfPageFormat.mm,marginAll:3*PdfPageFormat.mm),build:(ctx)=>pw.Row(crossAxisAlignment:pw.CrossAxisAlignment.start,children:[
-   if(photo!=null)pw.Container(width:17*PdfPageFormat.mm,height:23*PdfPageFormat.mm,child:pw.Image(photo!,fit:pw.BoxFit.cover)),
+   if(photo!=null)pw.Container(width:17*PdfPageFormat.mm,height:23*PdfPageFormat.mm,child:pw.Image(photo,fit:pw.BoxFit.cover)),
    if(photo!=null)pw.SizedBox(width:2*PdfPageFormat.mm),
    pw.Expanded(child:pw.Column(crossAxisAlignment:pw.CrossAxisAlignment.start,children:[
     pw.Text('DD WORLD MARKETING',style:pw.TextStyle(fontSize:8,fontWeight:pw.FontWeight.bold)),
@@ -78,11 +77,11 @@ class _EmployeeCenterScreenState extends ConsumerState<EmployeeCenterScreen> wit
  Widget qrPane()=>_QrPane(verify:repo.verifyQr);
 
  Widget documents()=>ListView(padding:const EdgeInsets.all(16),children:[
-  Row(children:[const Expanded(child:Text('Document Vault',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),if(!owner)FilledButton.icon(onPressed:uploadDocument,icon:const Icon(Icons.upload_file),label:const Text('Upload'))]),
-  const Text('Private employee documents: NIC, police report, Grama Sevaka report, education certificates, CV and employment records.'),
-  ref.watch(employeeDocumentsProvider((employeeId:widget.profile.id,owner:owner))).when(loading:()=>const LinearProgressIndicator(),error:(e,_)=>Text(e.toString()),data:(items)=>Column(children:items.map((d)=>Card(child:ListTile(leading:Icon(Icons.description,color:documentStatusColor(d.status)),title:Text(employeeDocumentTypes[d.documentType]??d.documentType),subtitle:Text(d.fileName+' • '+d.status.toUpperCase()),trailing:PopupMenuButton<String>(onSelected:(v){if(v=='open')openDoc(d);if(v=='yes')reviewDoc(d,true);if(v=='no')reviewDoc(d,false);},itemBuilder:(_)=>[const PopupMenuItem(value:'open',child:Text('View / Download')),if(owner&&d.status=='pending')const PopupMenuItem(value:'yes',child:Text('Approve')),if(owner&&d.status=='pending')const PopupMenuItem(value:'no',child:Text('Reject'))]))).toList()))
- ]);
- Future<void> uploadDocument() async {
+   Row(children:[const Expanded(child:Text('Document Vault',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),if(!owner)FilledButton.icon(onPressed:uploadDocument,icon:const Icon(Icons.upload_file),label:const Text('Upload'))]),
+   const Text('Private employee documents: NIC, police report, Grama Sevaka report, education certificates, CV and employment records.'),
+   ref.watch(employeeDocumentsProvider((employeeId:widget.profile.id,owner:owner))).when(loading:()=>const LinearProgressIndicator(),error:(e,_)=>Text(e.toString()),data:(items)=>Column(children:items.map((d){return Card(child:ListTile(leading:Icon(Icons.description,color:documentStatusColor(d.status)),title:Text(employeeDocumentTypes[d.documentType]??d.documentType),subtitle:Text('${d.fileName} • ${d.status.toUpperCase()}'),trailing:PopupMenuButton<String>(onSelected:(v){if(v=='open')openDoc(d);if(v=='yes')reviewDoc(d,true);if(v=='no')reviewDoc(d,false);},itemBuilder:(_)=>[const PopupMenuItem(value:'open',child:Text('View / Download')),if(owner&&d.status=='pending')const PopupMenuItem(value:'yes',child:Text('Approve')),if(owner&&d.status=='pending')const PopupMenuItem(value:'no',child:Text('Reject'))])));}).toList())),
+  ]);
+  Future<void> uploadDocument() async {
   final pick=await FilePicker.platform.pickFiles(withData:true,type:FileType.custom,allowedExtensions:['pdf','jpg','jpeg','png','webp']);if(pick==null||pick.files.isEmpty)return;
   String type='nic_front';if(!mounted)return;
   final selected=await showDialog<String>(context:context,builder:(ctx)=>StatefulBuilder(builder:(ctx,set)=>AlertDialog(title:const Text('Select document type'),content:DropdownButtonFormField<String>(value:type,items:employeeDocumentTypes.entries.map((e)=>DropdownMenuItem(value:e.key,child:Text(e.value))).toList(),onChanged:(v)=>set(()=>type=v??type)),actions:[TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(ctx,type),child:const Text('Upload'))])));
@@ -96,11 +95,11 @@ class _EmployeeCenterScreenState extends ConsumerState<EmployeeCenterScreen> wit
  }
 
  Widget leave()=>ListView(padding:const EdgeInsets.all(16),children:[
-  Row(children:[const Expanded(child:Text('Leave Management',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),if(!owner)FilledButton.icon(onPressed:applyLeave,icon:const Icon(Icons.add),label:const Text('Apply'))]),
-  const Text('Workflow: Team Leader review, then final Owner approval. Direct Agents without a team are routed to Owner.'),
-  ref.watch(leaveRequestsProvider((employeeId:widget.profile.id,owner:owner,teamLeader:teamLeader))).when(loading:()=>const LinearProgressIndicator(),error:(e,_)=>Text(e.toString()),data:(items)=>Column(children:items.map((l)=>Card(child:ListTile(title:Text((l.employeeName==null?'':l.employeeName!+' • ')+l.leaveType.replaceAll('_',' ').toUpperCase()),subtitle:Text(l.startDate.toString().substring(0,10)+' to '+l.endDate.toString().substring(0,10)+'\n'+l.reason+'\n'+l.reviewStage.replaceAll('_',' ')),isThreeLine:true,trailing:(owner||teamLeader)&&['PENDING_TEAM_LEADER','PENDING_OWNER'].contains(l.reviewStage)?PopupMenuButton<String>(onSelected:(v)=>reviewLeave(l,v=='approve'),itemBuilder:(_)=>[const PopupMenuItem(value:'approve',child:Text('Approve')),const PopupMenuItem(value:'reject',child:Text('Reject'))]):Text(l.status))).toList()))
- ]);
- Future<void> applyLeave() async {
+   Row(children:[const Expanded(child:Text('Leave Management',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),if(!owner)FilledButton.icon(onPressed:applyLeave,icon:const Icon(Icons.add),label:const Text('Apply'))]),
+   const Text('Workflow: Team Leader review, then final Owner approval. Team Leader requests and direct employees without a team go directly to Owner.'),
+   ref.watch(leaveRequestsProvider((employeeId:widget.profile.id,owner:owner,teamLeader:teamLeader))).when(loading:()=>const LinearProgressIndicator(),error:(e,_)=>Text(e.toString()),data:(items)=>Column(children:items.map((l){final canReview=(owner&&l.reviewStage=='PENDING_OWNER')||(teamLeader&&l.reviewStage=='PENDING_TEAM_LEADER'&&l.employeeId!=widget.profile.id);return Card(child:ListTile(title:Text('${l.employeeName==null?'':'${l.employeeName} • '}${l.leaveType.replaceAll('_',' ').toUpperCase()}'),subtitle:Text('${l.startDate.toString().substring(0,10)} to ${l.endDate.toString().substring(0,10)}\\n${l.reason}\\n${l.reviewStage.replaceAll('_',' ')}'),isThreeLine:true,trailing:canReview?PopupMenuButton<String>(onSelected:(v)=>reviewLeave(l,v=='approve'),itemBuilder:(_)=>[const PopupMenuItem(value:'approve',child:Text('Approve')),const PopupMenuItem(value:'reject',child:Text('Reject'))]):Text(l.status)));}).toList())),
+  ]);
+  Future<void> applyLeave() async {
   final reason=TextEditingController();String type='annual';bool morning=true;DateTime start=DateTime.now().add(const Duration(days:1)),end=start;
   final ok=await showDialog<bool>(context:context,builder:(ctx)=>StatefulBuilder(builder:(ctx,set)=>AlertDialog(title:const Text('Apply for Leave'),content:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
    DropdownButtonFormField<String>(value:type,decoration:const InputDecoration(labelText:'Leave type'),items:const[DropdownMenuItem(value:'annual',child:Text('Annual Leave')),DropdownMenuItem(value:'casual',child:Text('Casual Leave')),DropdownMenuItem(value:'sick',child:Text('Sick Leave')),DropdownMenuItem(value:'half_day',child:Text('Half Day Leave'))],onChanged:(v)=>set(()=>type=v??type)),
@@ -118,10 +117,10 @@ class _EmployeeCenterScreenState extends ConsumerState<EmployeeCenterScreen> wit
  }
 
  Widget downloads()=>ListView(padding:const EdgeInsets.all(16),children:[
-  Row(children:[const Expanded(child:Text('Download Center',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),if(owner)IconButton(onPressed:uploadDownload,icon:const Icon(Icons.upload_file))]),
-  ref.watch(downloadsProvider).when(loading:()=>const LinearProgressIndicator(),error:(e,_)=>Text(e.toString()),data:(items)=>Column(children:items.map((m)=>Card(child:ListTile(leading:const Icon(Icons.insert_drive_file),title:Text(m.title),subtitle:Text(m.category+' • '+m.fileName),trailing:IconButton(icon:const Icon(Icons.download),onPressed:()=>openMaterial(m,'dd-downloads',false)))).toList()))
- ]);
- Future<void> uploadDownload() async {
+   Row(children:[const Expanded(child:Text('Download Center',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),if(owner)IconButton(onPressed:uploadDownload,icon:const Icon(Icons.upload_file))]),
+   ref.watch(downloadsProvider).when(loading:()=>const LinearProgressIndicator(),error:(e,_)=>Text(e.toString()),data:(items)=>Column(children:items.map((m)=>Card(child:ListTile(leading:const Icon(Icons.insert_drive_file),title:Text(m.title),subtitle:Text('${m.category} • ${m.fileName}'),trailing:IconButton(icon:const Icon(Icons.download),onPressed:()=>openMaterial(m,'dd-downloads',false))))).toList())),
+  ]);
+  Future<void> uploadDownload() async {
   final pick=await FilePicker.platform.pickFiles(withData:true);if(pick==null||pick.files.isEmpty)return;
   final title=TextEditingController(),desc=TextEditingController();String category='pdf_report';if(!mounted)return;
   final ok=await showDialog<bool>(context:context,builder:(ctx)=>StatefulBuilder(builder:(ctx,set)=>AlertDialog(title:const Text('Publish company file'),content:Column(mainAxisSize:MainAxisSize.min,children:[TextField(controller:title,decoration:const InputDecoration(labelText:'Title')),TextField(controller:desc,decoration:const InputDecoration(labelText:'Description')),DropdownButtonFormField<String>(value:category,items:const[DropdownMenuItem(value:'pdf_report',child:Text('PDF Report')),DropdownMenuItem(value:'excel_report',child:Text('Excel Report')),DropdownMenuItem(value:'training_file',child:Text('Training File')),DropdownMenuItem(value:'company_file',child:Text('Company File'))],onChanged:(v)=>set(()=>category=v??category))]),actions:[TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Publish'))])));
@@ -132,11 +131,11 @@ class _EmployeeCenterScreenState extends ConsumerState<EmployeeCenterScreen> wit
  }
 
  Widget training()=>ListView(padding:const EdgeInsets.all(16),children:[
-  Row(children:[const Expanded(child:Text('Training Center',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),if(owner)IconButton(onPressed:uploadTraining,icon:const Icon(Icons.add_circle))]),
-  const Text('Sayuru Training • Govi Mithuru Training'),
-  ref.watch(trainingMaterialsProvider).when(loading:()=>const LinearProgressIndicator(),error:(e,_)=>Text(e.toString()),data:(items)=>Column(children:items.map((m)=>Card(child:ListTile(leading:Icon(m.category=='video'?Icons.play_circle:m.category=='pdf'?Icons.picture_as_pdf:Icons.slideshow),title:Text(m.title),subtitle:Text(m.description.isEmpty?m.fileName:m.description),trailing:IconButton(icon:const Icon(Icons.open_in_new),onPressed:()=>openMaterial(m,'dd-training-materials',true)))).toList()))
- ]);
- Future<void> uploadTraining() async {
+   Row(children:[const Expanded(child:Text('Training Center',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),if(owner)IconButton(onPressed:uploadTraining,icon:const Icon(Icons.add_circle))]),
+   const Text('Sayuru Training • Govi Mithuru Training'),
+   ref.watch(trainingMaterialsProvider).when(loading:()=>const LinearProgressIndicator(),error:(e,_)=>Text(e.toString()),data:(items)=>Column(children:items.map((m)=>Card(child:ListTile(leading:Icon(m.category=='video'?Icons.play_circle:m.category=='pdf'?Icons.picture_as_pdf:Icons.slideshow),title:Text(m.title),subtitle:Text(m.description.isEmpty?m.fileName:m.description),trailing:IconButton(icon:const Icon(Icons.open_in_new),onPressed:()=>openMaterial(m,'dd-training-materials',true))))).toList())),
+  ]);
+  Future<void> uploadTraining() async {
   final pick=await FilePicker.platform.pickFiles(withData:true,type:FileType.custom,allowedExtensions:['mp4','mov','pdf','ppt','pptx']);if(pick==null||pick.files.isEmpty)return;
   final title=TextEditingController(),desc=TextEditingController();String product='sayuru',kind='video';if(!mounted)return;
   final ok=await showDialog<bool>(context:context,builder:(ctx)=>StatefulBuilder(builder:(ctx,set)=>AlertDialog(title:const Text('Add training material'),content:Column(mainAxisSize:MainAxisSize.min,children:[TextField(controller:title,decoration:const InputDecoration(labelText:'Title')),TextField(controller:desc,decoration:const InputDecoration(labelText:'Description')),DropdownButtonFormField<String>(value:product,items:const[DropdownMenuItem(value:'sayuru',child:Text('Sayuru')),DropdownMenuItem(value:'govimithuru',child:Text('Govimithuru'))],onChanged:(v)=>set(()=>product=v??product)),DropdownButtonFormField<String>(value:kind,items:const[DropdownMenuItem(value:'video',child:Text('Video')),DropdownMenuItem(value:'pdf',child:Text('PDF')),DropdownMenuItem(value:'presentation',child:Text('Presentation'))],onChanged:(v)=>set(()=>kind=v??kind))]),actions:[TextButton(onPressed:()=>Navigator.pop(ctx,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(ctx,true),child:const Text('Publish'))])));
