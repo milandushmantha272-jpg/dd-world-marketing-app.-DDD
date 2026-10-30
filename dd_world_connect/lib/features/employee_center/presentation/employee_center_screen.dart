@@ -71,7 +71,7 @@ class _EmployeeCenterScreenState extends ConsumerState<EmployeeCenterScreen> wit
   final staff=await repo.employees();if(!mounted||staff.isEmpty)return;
   final id=await showDialog<String>(context:context,builder:(ctx)=>AlertDialog(title:const Text('Issue Employee ID'),content:SizedBox(width:320,child:ListView(shrinkWrap:true,children:staff.map((e)=>ListTile(title:Text(e['name'] as String),subtitle:Text(e['agent_code'] as String? ?? ''),onTap:()=>Navigator.pop(ctx,e['id'] as String))).toList())),actions:[TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Cancel'))]));
   if(id==null)return;
-  await run(()async{final card=await repo.issueIdCard(employeeId:id,issuerId:widget.profile.id);if(!mounted)return;await showDialog<void>(context:context,builder:(ctx)=>AlertDialog(title:const Text('ID issued'),content:Column(mainAxisSize:MainAxisSize.min,children:[Text(card.employeeName),QrImageView(data:card.qrToken,size:180)]),actions:[TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Close'))]));ref.invalidate(employeeIdCardProvider(widget.profile.id));});
+  await run(()async{final card=await repo.issueIdCard(employeeId:id);if(!mounted)return;await showDialog<void>(context:context,builder:(ctx)=>AlertDialog(title:const Text('ID issued'),content:Column(mainAxisSize:MainAxisSize.min,children:[Text(card.employeeName),QrImageView(data:card.qrToken,size:180)]),actions:[TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Close'))]));ref.invalidate(employeeIdCardProvider(widget.profile.id));});
  }
 
  Widget qrPane()=>_QrPane(verify:repo.verifyQr);
@@ -95,7 +95,7 @@ class _EmployeeCenterScreenState extends ConsumerState<EmployeeCenterScreen> wit
  }
 
  Widget leave()=>ListView(padding:const EdgeInsets.all(16),children:[
-  Row(children:[const Expanded(child:Text('Leave Management',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),if(!owner&&!teamLeader)FilledButton.icon(onPressed:applyLeave,icon:const Icon(Icons.add),label:const Text('Apply'))]),
+  Row(children:[const Expanded(child:Text('Leave Management',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold))),if(!owner)FilledButton.icon(onPressed:applyLeave,icon:const Icon(Icons.add),label:const Text('Apply'))]),
   const Text('Workflow: Team Leader review, then final Owner approval. Direct Agents without a team are routed to Owner.'),
   ref.watch(leaveRequestsProvider((employeeId:widget.profile.id,owner:owner,teamLeader:teamLeader))).when(loading:()=>const LinearProgressIndicator(),error:(e,_)=>Text(e.toString()),data:(items)=>Column(children:items.map((l)=>Card(child:ListTile(title:Text((l.employeeName==null?'':l.employeeName!+' • ')+l.leaveType.replaceAll('_',' ').toUpperCase()),subtitle:Text(l.startDate.toString().substring(0,10)+' to '+l.endDate.toString().substring(0,10)+'\n'+l.reason+'\n'+l.reviewStage.replaceAll('_',' ')),isThreeLine:true,trailing:(owner||teamLeader)&&['PENDING_TEAM_LEADER','PENDING_OWNER'].contains(l.reviewStage)?PopupMenuButton<String>(onSelected:(v)=>reviewLeave(l,v=='approve'),itemBuilder:(_)=>[const PopupMenuItem(value:'approve',child:Text('Approve')),const PopupMenuItem(value:'reject',child:Text('Reject'))]):Text(l.status))).toList()))
  ]);
