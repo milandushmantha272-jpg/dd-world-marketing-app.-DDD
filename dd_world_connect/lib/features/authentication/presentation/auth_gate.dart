@@ -11,6 +11,11 @@ import '../../employees/presentation/employee_management_screen.dart';
 import '../../teams/presentation/team_management_screen.dart';
 import '../../attendance/presentation/attendance_management_screen.dart';
 import '../../activations/presentation/activation_center_screen.dart';
+import '../../commissions/presentation/commission_center_screen.dart';
+import '../../business_centers/presentation/dialog_reports_center_screen.dart';
+import '../../business_centers/presentation/commission_complaints_center_screen.dart';
+import '../../business_centers/presentation/ez_cash_center_screen.dart';
+import '../../employee_lifecycle/presentation/employee_lifecycle_screens.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -136,17 +141,32 @@ class RoleDashboard extends StatelessWidget {
           ('Attendance', Icons.location_on_outlined),
           ('Activations', Icons.trending_up_rounded),
           ('Commissions', Icons.payments_outlined),
+          ('Commission Complaints', Icons.report_problem_outlined),
+          ('Dialog Reports', Icons.assessment_outlined),
+          ('EZ Cash', Icons.account_balance_wallet_outlined),
           ('Meetings', Icons.event_outlined),
-          ('Complaints', Icons.support_agent_outlined),
-          ('Reports Center', Icons.assessment_outlined),
+          ('Company ID', Icons.badge_outlined),
+          ('Documents', Icons.folder_shared_outlined),
+          ('Leave', Icons.event_busy_outlined),
+          ('Downloads', Icons.download_outlined),
+          ('Training', Icons.school_outlined),
+          ('QR Scanner', Icons.qr_code_scanner),
         ],
       EmployeeRole.teamLeader => const [
           ('My Team', Icons.groups_2_outlined),
           ('Team Sales', Icons.trending_up_rounded),
           ('Attendance Review', Icons.fact_check_outlined),
+          ('Commissions', Icons.payments_outlined),
+          ('Commission Complaints', Icons.report_problem_outlined),
+          ('Dialog Reports', Icons.assessment_outlined),
+          ('EZ Cash', Icons.account_balance_wallet_outlined),
           ('Meetings', Icons.event_outlined),
-          ('Complaints', Icons.support_agent_outlined),
-          ('Team Reports', Icons.assessment_outlined),
+          ('Company ID', Icons.badge_outlined),
+          ('Documents', Icons.folder_shared_outlined),
+          ('Leave', Icons.event_busy_outlined),
+          ('Downloads', Icons.download_outlined),
+          ('Training', Icons.school_outlined),
+          ('QR Scanner', Icons.qr_code_scanner),
         ],
       EmployeeRole.agent => const [
           ('My Team', Icons.groups_2_outlined),
@@ -155,8 +175,16 @@ class RoleDashboard extends StatelessWidget {
           ('Submit Activation', Icons.add_chart_outlined),
           ('My Sales', Icons.trending_up_rounded),
           ('My Commission', Icons.payments_outlined),
+          ('Commission Complaints', Icons.report_problem_outlined),
+          ('Dialog Reports', Icons.assessment_outlined),
+          ('EZ Cash', Icons.account_balance_wallet_outlined),
           ('Meetings', Icons.event_outlined),
-          ('Complaints', Icons.support_agent_outlined),
+          ('Company ID', Icons.badge_outlined),
+          ('Documents', Icons.folder_shared_outlined),
+          ('Leave', Icons.event_busy_outlined),
+          ('Downloads', Icons.download_outlined),
+          ('Training', Icons.school_outlined),
+          ('QR Scanner', Icons.qr_code_scanner),
         ],
       EmployeeRole.directAgent => const [
           ('My Profile', Icons.badge_outlined),
@@ -164,8 +192,16 @@ class RoleDashboard extends StatelessWidget {
           ('Submit Activation', Icons.add_chart_outlined),
           ('My Sales', Icons.trending_up_rounded),
           ('My Commission', Icons.payments_outlined),
+          ('Commission Complaints', Icons.report_problem_outlined),
+          ('Dialog Reports', Icons.assessment_outlined),
+          ('EZ Cash', Icons.account_balance_wallet_outlined),
           ('Owner Messages', Icons.notifications_outlined),
-          ('Complaints', Icons.support_agent_outlined),
+          ('Company ID', Icons.badge_outlined),
+          ('Documents', Icons.folder_shared_outlined),
+          ('Leave', Icons.event_busy_outlined),
+          ('Downloads', Icons.download_outlined),
+          ('Training', Icons.school_outlined),
+          ('QR Scanner', Icons.qr_code_scanner),
         ],
     };
 
@@ -232,10 +268,11 @@ class RoleDashboard extends StatelessWidget {
                   onTap: (item.$1 == 'Activations' && profile.role == EmployeeRole.owner) ||
                           (item.$1 == 'Team Sales' && profile.role == EmployeeRole.teamLeader) ||
                           (item.$1 == 'Submit Activation' && (profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent)) ||
+                          ((item.$1 == 'Commissions' || item.$1 == 'My Commission') && true) ||
                           (item.$1 == 'Employees' && profile.role == EmployeeRole.owner) ||
                           (item.$1 == 'Teams' && profile.role == EmployeeRole.owner) ||
                           (item.$1 == 'My Team' && (profile.role == EmployeeRole.teamLeader || profile.role == EmployeeRole.agent)) ||
-                          ((item.$1 == 'My Profile' && (profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent)) || item.$1.toLowerCase().contains('attendance'))
+                          ((item.$1 == 'My Profile' && (profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent)) || item.$1.toLowerCase().contains('attendance')) || item.$1 == 'Reports Center' || item.$1 == 'Team Reports' || item.$1 == 'Dialog Reports' || item.$1 == 'EZ Cash' || item.$1 == 'Commission Complaints' || item.$1 == 'Complaints' || item.$1 == 'Company ID' || item.$1 == 'Documents' || item.$1 == 'Leave' || item.$1 == 'Downloads' || item.$1 == 'Training' || item.$1 == 'QR Scanner'
                       ? () => Navigator.of(context).push(MaterialPageRoute<void>(
                             builder: (_) => RoleGuard(
                               profile: profile,
@@ -245,9 +282,23 @@ class RoleDashboard extends StatelessWidget {
                                 EmployeeRole.agent => const {EmployeeRole.agent},
                                 EmployeeRole.directAgent => const {EmployeeRole.directAgent},
                               },
-                              child: (item.$1 == 'Activations' || item.$1 == 'Team Sales' || item.$1 == 'Submit Activation')
-                                  ? ActivationCenterScreen(profile: profile)
-                                  : item.$1.toLowerCase().contains('attendance')
+                              child: item.$1 == 'Company ID' ? EmployeeIdDashboardScreen(profile: profile)
+                                  : item.$1 == 'QR Scanner' ? QrScannerScreen(profile: profile)
+                                  : item.$1 == 'Documents' ? DocumentVaultScreen(profile: profile)
+                                  : item.$1 == 'Leave' ? LeaveManagementScreen(profile: profile)
+                                  : item.$1 == 'Downloads' ? DownloadCenterScreen(profile: profile)
+                                  : item.$1 == 'Training' ? TrainingCenterScreen(profile: profile)
+                                  : (item.$1 == 'Commissions' || item.$1 == 'My Commission')
+                                  ? CommissionCenterScreen(profile: profile)
+                                  : (item.$1 == 'Reports Center' || item.$1 == 'Team Reports' || item.$1 == 'Dialog Reports')
+                                      ? DialogReportsCenterScreen(profile: profile)
+                                      : (item.$1 == 'Commission Complaints' || item.$1 == 'Complaints')
+                                          ? CommissionComplaintsCenterScreen(profile: profile)
+                                          : item.$1 == 'EZ Cash'
+                                              ? EzCashCenterScreen(profile: profile)
+                                  : (item.$1 == 'Activations' || item.$1 == 'Team Sales' || item.$1 == 'Submit Activation')
+                                      ? ActivationCenterScreen(profile: profile)
+                                      : item.$1.toLowerCase().contains('attendance')
                                       ? AttendanceManagementScreen(profile: profile)
                                       : (item.$1 == 'Teams' || item.$1 == 'My Team')
                                       ? TeamManagementScreen(role: profile.role)
@@ -264,7 +315,7 @@ class RoleDashboard extends StatelessWidget {
                         Icon(item.$2, size: 30, color: const Color(0xFF1F5AA6)),
                         const SizedBox(height: 12),
                         Text(item.$1, style: const TextStyle(fontWeight: FontWeight.w600)),
-                        if ((item.$1 == 'Employees' && profile.role == EmployeeRole.owner) || (item.$1 == 'Teams' && profile.role == EmployeeRole.owner) || (item.$1 == 'My Team' && (profile.role == EmployeeRole.teamLeader || profile.role == EmployeeRole.agent)) || (item.$1 == 'My Profile' && (profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent)) || item.$1.toLowerCase().contains('attendance') || item.$1 == 'Activations' || item.$1 == 'Team Sales' || item.$1 == 'Submit Activation') const Text('Open module', style: TextStyle(fontSize: 11, color: Color(0xFF667085))),
+                        if ((item.$1 == 'Employees' && profile.role == EmployeeRole.owner) || (item.$1 == 'Teams' && profile.role == EmployeeRole.owner) || (item.$1 == 'My Team' && (profile.role == EmployeeRole.teamLeader || profile.role == EmployeeRole.agent)) || (item.$1 == 'My Profile' && (profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent)) || item.$1.toLowerCase().contains('attendance') || item.$1 == 'Activations' || item.$1 == 'Team Sales' || item.$1 == 'Submit Activation' || item.$1 == 'Commissions' || item.$1 == 'My Commission') const Text('Open module', style: TextStyle(fontSize: 11, color: Color(0xFF667085))),
                       ],
                     ),
                   ),

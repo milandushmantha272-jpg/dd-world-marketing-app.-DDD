@@ -1,0 +1,12 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../data/lifecycle_repository.dart';
+import '../domain/lifecycle_models.dart';
+import 'lifecycle_service.dart';
+final lifecycleRepositoryProvider=Provider<LifecycleRepository>((ref)=>LifecycleRepository());
+final lifecycleServiceProvider=Provider<LifecycleService>((ref)=>LifecycleService(ref.watch(lifecycleRepositoryProvider)));
+final employeeOptionsProvider=FutureProvider<List<EmployeeOption>>((ref)=>ref.watch(lifecycleServiceProvider).employees());
+final employeeCardsProvider=FutureProvider<List<LifecycleRow>>((ref)=>ref.watch(lifecycleServiceProvider).cards());
+final employeeDocumentsProvider=FutureProvider<List<LifecycleRow>>((ref)=>ref.watch(lifecycleServiceProvider).documents());
+final leaveRequestsProvider=FutureProvider<List<LifecycleRow>>((ref)=>ref.watch(lifecycleServiceProvider).leave());
+final downloadsProvider=FutureProvider<List<LifecycleRow>>((ref)=>ref.watch(lifecycleServiceProvider).downloads());
+final trainingProvider=FutureProvider.family<List<LifecycleRow>,String?>((ref,p)=>ref.watch(lifecycleServiceProvider).training(p));

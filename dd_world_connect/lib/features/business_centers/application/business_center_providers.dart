@@ -1,0 +1,10 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../data/business_center_repository.dart';
+import '../domain/business_records.dart';
+final businessCenterRepositoryProvider=Provider<BusinessCenterRepository>((ref)=>BusinessCenterRepository());
+final dialogReportsProvider=FutureProvider.family<List<DialogReport>,String>((ref,type)=>ref.watch(businessCenterRepositoryProvider).dialogReports(type:type.isEmpty?null:type));
+final dialogArchiveProvider=FutureProvider<List<DialogReport>>((ref)=>ref.watch(businessCenterRepositoryProvider).dialogReports(archive:true));
+final complaintThreadsProvider=FutureProvider<List<CommissionComplaintThread>>((ref)=>ref.watch(businessCenterRepositoryProvider).complaints());
+final ezCashRecordsProvider=FutureProvider.family<List<EzCashRecord>,DateTime?>((ref,month)=>ref.watch(businessCenterRepositoryProvider).ezCashRecords(month:month));
+final ezCashEmployeesProvider=FutureProvider<List<Map<String,dynamic>>>((ref)=>ref.watch(businessCenterRepositoryProvider).employees());
+final ezCashReportsProvider=FutureProvider<List<Map<String,dynamic>>>((ref)=>ref.watch(businessCenterRepositoryProvider).ezCashReports());
