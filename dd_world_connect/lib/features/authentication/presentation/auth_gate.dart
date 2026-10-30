@@ -171,6 +171,7 @@ class RoleDashboard extends StatelessWidget {
           ('Dialog Reports', Icons.assessment_outlined),
           ('EZ Cash', Icons.account_balance_wallet_outlined),
           ('Meetings', Icons.event_outlined),
+          ('Communication Center', Icons.forum_outlined),
         ],
       EmployeeRole.agent => const [
           ('My Team', Icons.groups_2_outlined),
