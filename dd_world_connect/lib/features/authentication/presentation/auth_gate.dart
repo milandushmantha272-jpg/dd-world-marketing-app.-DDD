@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../data/auth_repository.dart';
@@ -15,6 +16,8 @@ import '../../commissions/presentation/commission_center_screen.dart';
 import '../../business_centers/presentation/dialog_reports_center_screen.dart';
 import '../../business_centers/presentation/commission_complaints_center_screen.dart';
 import '../../business_centers/presentation/ez_cash_center_screen.dart';
+import '../../communication/presentation/communication_center_screen.dart';
+import '../../communication/application/fcm_notification_service.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -29,6 +32,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   Future<EmployeeProfile>? _profileFuture;
   String? _sessionUserId;
   String? _blockedMessage;
+  String? _pushInitializedFor;
+  FcmNotificationService? _fcmService;
 
   @override
   void initState() {
@@ -68,6 +73,16 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     }
   }
 
+  void _initializePush(EmployeeProfile profile) {
+    if (_pushInitializedFor == profile.id) return;
+    _pushInitializedFor = profile.id;
+    _fcmService ??= FcmNotificationService(Supabase.instance.client);
+    final platform = defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
+    unawaited(_fcmService!.initialize(employeeId: profile.id, platform: platform).catchError((Object error) {
+      debugPrint('FCM registration unavailable: $error');
+    }));
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) return;
@@ -86,6 +101,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _subscription?.cancel();
+    _fcmService?.dispose();
     super.dispose();
   }
 
@@ -121,6 +137,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
             }),
           );
         }
+        _initializePush(snapshot.requireData);
         return RoleDashboard(profile: snapshot.requireData);
       },
     );
@@ -144,6 +161,7 @@ class RoleDashboard extends StatelessWidget {
           ('Dialog Reports', Icons.assessment_outlined),
           ('EZ Cash', Icons.account_balance_wallet_outlined),
           ('Meetings', Icons.event_outlined),
+          ('Communication Center', Icons.forum_outlined),
         ],
       EmployeeRole.teamLeader => const [
           ('My Team', Icons.groups_2_outlined),
@@ -154,6 +172,7 @@ class RoleDashboard extends StatelessWidget {
           ('Dialog Reports', Icons.assessment_outlined),
           ('EZ Cash', Icons.account_balance_wallet_outlined),
           ('Meetings', Icons.event_outlined),
+          ('Communication Center', Icons.forum_outlined),
         ],
       EmployeeRole.agent => const [
           ('My Team', Icons.groups_2_outlined),
@@ -166,6 +185,7 @@ class RoleDashboard extends StatelessWidget {
           ('Dialog Reports', Icons.assessment_outlined),
           ('EZ Cash', Icons.account_balance_wallet_outlined),
           ('Meetings', Icons.event_outlined),
+          ('Communication Center', Icons.forum_outlined),
         ],
       EmployeeRole.directAgent => const [
           ('My Profile', Icons.badge_outlined),
@@ -177,6 +197,7 @@ class RoleDashboard extends StatelessWidget {
           ('Dialog Reports', Icons.assessment_outlined),
           ('EZ Cash', Icons.account_balance_wallet_outlined),
           ('Owner Messages', Icons.notifications_outlined),
+          ('Communication Center', Icons.forum_outlined),
         ],
     };
 
@@ -247,7 +268,7 @@ class RoleDashboard extends StatelessWidget {
                           (item.$1 == 'Employees' && profile.role == EmployeeRole.owner) ||
                           (item.$1 == 'Teams' && profile.role == EmployeeRole.owner) ||
                           (item.$1 == 'My Team' && (profile.role == EmployeeRole.teamLeader || profile.role == EmployeeRole.agent)) ||
-                          ((item.$1 == 'My Profile' && (profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent)) || item.$1.toLowerCase().contains('attendance')) || item.$1 == 'Reports Center' || item.$1 == 'Team Reports' || item.$1 == 'Dialog Reports' || item.$1 == 'EZ Cash' || item.$1 == 'Commission Complaints' || item.$1 == 'Complaints'
+                          ((item.$1 == 'My Profile' && (profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent)) || item.$1.toLowerCase().contains('attendance')) || item.$1 == 'Reports Center' || item.$1 == 'Team Reports' || item.$1 == 'Dialog Reports' || item.$1 == 'EZ Cash' || item.$1 == 'Commission Complaints' || item.$1 == 'Complaints' || item.$1 == 'Communication Center'
                       ? () => Navigator.of(context).push(MaterialPageRoute<void>(
                             builder: (_) => RoleGuard(
                               profile: profile,
@@ -257,7 +278,9 @@ class RoleDashboard extends StatelessWidget {
                                 EmployeeRole.agent => const {EmployeeRole.agent},
                                 EmployeeRole.directAgent => const {EmployeeRole.directAgent},
                               },
-                              child: (item.$1 == 'Commissions' || item.$1 == 'My Commission')
+                              child: item.$1 == 'Communication Center'
+                                  ? CommunicationCenterScreen(profile: profile)
+                                  : (item.$1 == 'Commissions' || item.$1 == 'My Commission')
                                   ? CommissionCenterScreen(profile: profile)
                                   : (item.$1 == 'Reports Center' || item.$1 == 'Team Reports' || item.$1 == 'Dialog Reports')
                                       ? DialogReportsCenterScreen(profile: profile)
