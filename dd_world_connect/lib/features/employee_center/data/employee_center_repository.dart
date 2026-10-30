@@ -97,9 +97,7 @@ class EmployeeCenterRepository {
   Future<String> documentUrl(String path) => client.storage.from('employee-documents').createSignedUrl(path,300);
 
   Future<void> reviewDocument({required String documentId,required String reviewerId,required bool approve,String? note}) async {
-    final decision = approve ? 'approved' : 'rejected';
-    await client.from('employee_documents').update({'status':decision,'reviewed_at':DateTime.now().toUtc().toIso8601String(),'reviewed_by':reviewerId,'review_note':note}).eq('id',documentId);
-    await client.from('document_verifications').insert({'document_id':documentId,'verifier_id':reviewerId,'decision':decision,'note':note});
+    await client.rpc('review_employee_document',params:{'p_document_id':documentId,'p_decision':approve?'approved':'rejected','p_note':note});
   }
 
   Future<List<LeaveRequestRecord>> leaves(String employeeId,{required bool owner,required bool teamLeader}) async {
