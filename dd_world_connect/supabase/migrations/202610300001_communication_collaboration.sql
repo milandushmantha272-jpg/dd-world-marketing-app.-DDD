@@ -78,14 +78,31 @@ create table if not exists public.conversation_members (
 );
 create index if not exists conversation_members_employee_idx on public.conversation_members(employee_id,conversation_id);
 
--- The legacy public.messages table is retained and extended for backwards compatibility.
-alter table public.messages add column if not exists conversation_id uuid references public.conversations(id) on delete cascade;
-alter table public.messages add column if not exists attachment_path text;
-alter table public.messages add column if not exists attachment_mime_type text;
-alter table public.messages add column if not exists message_type text not null default 'text';
-alter table public.messages add column if not exists read_at timestamptz;
-alter table public.messages add column if not exists created_at timestamptz not null default now();
-create index if not exists messages_conversation_created_idx on public.messages(conversation_id,created_at desc) where conversation_id is not null;
+create table if not exists public.conversation_messages (
+ id uuid primary key default gen_random_uuid(),
+ conversation_id uuid not null references public.conversations(id) on delete cascade,
+ sender_id uuid not null references public.users(id),
+ body text not null default '',
+ message_type text not null default 'text' check (message_type in ('text','image')),
+ attachment_path text,
+ attachment_mime_type text,
+ created_at timestamptz not null default now(),
+ read_at timestamptz,
+ check (length(body) <= 5000),
+ check (length(body) > 0 or attachment_path is not null)
+);
+create index if not exists conversation_messages_conversation_created_idx on public.conversation_messages(conversation_id,created_at desc);
+create or replace function public.dd_comm_is_conversation_member(p_conversation_id uuid)
+returns boolean language sql stable security definer set search_path = public, pg_temp
+as $ select exists(select 1 from public.conversation_members cm where cm.conversation_id=p_conversation_id and cm.employee_id=public.dd_comm_current_user_id()) $;
+revoke all on function public.dd_comm_is_conversation_member(uuid) from public;
+grant execute on function public.dd_comm_is_conversation_member(uuid) to authenticated;
+
+create or replace function public.dd_comm_is_group_member(p_group_id uuid)
+returns boolean language sql stable security definer set search_path = public, pg_temp
+as $ select exists(select 1 from public.group_members gm where gm.group_id=p_group_id and gm.employee_id=public.dd_comm_current_user_id()) $;
+revoke all on function public.dd_comm_is_group_member(uuid) from public;
+grant execute on function public.dd_comm_is_group_member(uuid) to authenticated;
 
 create table if not exists public.groups (
  id uuid primary key default gen_random_uuid(),
@@ -166,6 +183,7 @@ alter table public.meeting_attendance enable row level security;
 alter table public.conversations enable row level security;
 alter table public.conversation_members enable row level security;
 alter table public.messages enable row level security;
+alter table public.conversation_messages enable row level security;
 alter table public.groups enable row level security;
 alter table public.group_members enable row level security;
 alter table public.group_messages enable row level security;
@@ -203,30 +221,26 @@ with check (employee_id=public.dd_comm_current_user_id() or public.dd_comm_is_ow
 
 drop policy if exists conversations_select_member on public.conversations;
 create policy conversations_select_member on public.conversations for select to authenticated
-using (exists(select 1 from public.conversation_members cm where cm.conversation_id=id and cm.employee_id=public.dd_comm_current_user_id()));
+using (public.dd_comm_is_conversation_member(id));
 drop policy if exists conversations_insert_creator on public.conversations;
 create policy conversations_insert_creator on public.conversations for insert to authenticated
 with check (created_by=public.dd_comm_current_user_id());
 drop policy if exists conversation_members_select_member on public.conversation_members;
 create policy conversation_members_select_member on public.conversation_members for select to authenticated
-using (employee_id=public.dd_comm_current_user_id() or exists(select 1 from public.conversation_members mine where mine.conversation_id=conversation_id and mine.employee_id=public.dd_comm_current_user_id()));
+using (employee_id=public.dd_comm_current_user_id() or public.dd_comm_is_conversation_member(conversation_id));
 drop policy if exists conversation_members_insert_self_or_owner on public.conversation_members;
 create policy conversation_members_insert_self_or_owner on public.conversation_members for insert to authenticated
 with check (employee_id=public.dd_comm_current_user_id() or public.dd_comm_is_owner() or exists(select 1 from public.conversations c where c.id=conversation_id and c.created_by=public.dd_comm_current_user_id()));
-drop policy if exists messages_select_conversation_member on public.messages;
-create policy messages_select_conversation_member on public.messages for select to authenticated
-using (conversation_id is not null and exists(select 1 from public.conversation_members cm where cm.conversation_id=messages.conversation_id and cm.employee_id=public.dd_comm_current_user_id()));
-drop policy if exists messages_insert_conversation_member on public.messages;
-create policy messages_insert_conversation_member on public.messages for insert to authenticated
-with check (conversation_id is not null and sender_id=public.dd_comm_current_user_id() and exists(select 1 from public.conversation_members cm where cm.conversation_id=messages.conversation_id and cm.employee_id=public.dd_comm_current_user_id()));
-drop policy if exists messages_update_recipient_read on public.messages;
-create policy messages_update_recipient_read on public.messages for update to authenticated
-using (conversation_id is not null and exists(select 1 from public.conversation_members cm where cm.conversation_id=messages.conversation_id and cm.employee_id=public.dd_comm_current_user_id()) and sender_id<>public.dd_comm_current_user_id())
-with check (conversation_id is not null and exists(select 1 from public.conversation_members cm where cm.conversation_id=messages.conversation_id and cm.employee_id=public.dd_comm_current_user_id()));
+drop policy if exists conversation_messages_select_member on public.conversation_messages;
+create policy conversation_messages_select_member on public.conversation_messages for select to authenticated using (public.dd_comm_is_conversation_member(conversation_id));
+drop policy if exists conversation_messages_insert_member on public.conversation_messages;
+create policy conversation_messages_insert_member on public.conversation_messages for insert to authenticated with check (sender_id=public.dd_comm_current_user_id() and public.dd_comm_is_conversation_member(conversation_id));
+drop policy if exists conversation_messages_update_read on public.conversation_messages;
+create policy conversation_messages_update_read on public.conversation_messages for update to authenticated using (public.dd_comm_is_conversation_member(conversation_id) and sender_id<>public.dd_comm_current_user_id()) with check (public.dd_comm_is_conversation_member(conversation_id) and sender_id<>public.dd_comm_current_user_id());
 
 drop policy if exists groups_select_member on public.groups;
 create policy groups_select_member on public.groups for select to authenticated
-using (exists(select 1 from public.group_members gm where gm.group_id=id and gm.employee_id=public.dd_comm_current_user_id()) or public.dd_comm_is_owner());
+using (public.dd_comm_is_group_member(id) or public.dd_comm_is_owner());
 drop policy if exists groups_insert_manager on public.groups;
 create policy groups_insert_manager on public.groups for insert to authenticated
 with check (created_by=public.dd_comm_current_user_id() and (public.dd_comm_is_owner() or (public.dd_comm_current_role()='team_leader' and group_type='team' and team_id=(select u.team_id from public.users u where u.id=public.dd_comm_current_user_id()))));
@@ -238,17 +252,21 @@ drop policy if exists groups_delete_owner on public.groups;
 create policy groups_delete_owner on public.groups for delete to authenticated using (public.dd_comm_is_owner());
 drop policy if exists group_members_select_group_member on public.group_members;
 create policy group_members_select_group_member on public.group_members for select to authenticated
-using (employee_id=public.dd_comm_current_user_id() or exists(select 1 from public.group_members mine where mine.group_id=group_id and mine.employee_id=public.dd_comm_current_user_id()) or public.dd_comm_is_owner());
+using (employee_id=public.dd_comm_current_user_id() or public.dd_comm_is_group_member(group_id) or public.dd_comm_is_owner());
 drop policy if exists group_members_insert_manager on public.group_members;
 create policy group_members_insert_manager on public.group_members for insert to authenticated
 with check (added_by=public.dd_comm_current_user_id() and (public.dd_comm_is_owner() or exists(select 1 from public.groups g where g.id=group_id and g.group_type='team' and g.team_id=(select u.team_id from public.users u where u.id=public.dd_comm_current_user_id()) and public.dd_comm_current_role()='team_leader')));
 drop policy if exists group_messages_select_member on public.group_messages;
 create policy group_messages_select_member on public.group_messages for select to authenticated
-using (exists(select 1 from public.group_members gm where gm.group_id=group_id and gm.employee_id=public.dd_comm_current_user_id()));
+using (public.dd_comm_is_group_member(group_id));
 drop policy if exists group_messages_insert_member on public.group_messages;
 create policy group_messages_insert_member on public.group_messages for insert to authenticated
-with check (sender_id=public.dd_comm_current_user_id() and exists(select 1 from public.group_members gm where gm.group_id=group_id and gm.employee_id=public.dd_comm_current_user_id()) and (message_type<>'announcement' or public.dd_comm_is_owner() or public.dd_comm_current_role()='team_leader'));
+with check (sender_id=public.dd_comm_current_user_id() and public.dd_comm_is_group_member(group_id) and (message_type<>'announcement' or public.dd_comm_is_owner() or public.dd_comm_current_role()='team_leader'));
 
+drop policy if exists community_posts_select on public.community_posts;
+drop policy if exists community_posts_insert on public.community_posts;
+drop policy if exists community_posts_update on public.community_posts;
+drop policy if exists community_posts_delete on public.community_posts;
 drop policy if exists community_posts_select_active on public.community_posts;
 create policy community_posts_select_active on public.community_posts for select to authenticated
 using (public.dd_comm_current_user_id() is not null and status='published' and deleted_at is null and (audience='all' or team_id=(select u.team_id from public.users u where u.id=public.dd_comm_current_user_id())));
@@ -262,12 +280,19 @@ with check (author_user_id=public.dd_comm_current_user_id() or public.dd_comm_is
 drop policy if exists community_posts_delete_author_or_owner on public.community_posts;
 create policy community_posts_delete_author_or_owner on public.community_posts for delete to authenticated
 using (author_user_id=public.dd_comm_current_user_id() or public.dd_comm_is_owner());
+drop policy if exists community_comments_select on public.community_comments;
+drop policy if exists community_comments_insert on public.community_comments;
+drop policy if exists community_comments_update on public.community_comments;
+drop policy if exists community_comments_delete on public.community_comments;
 drop policy if exists community_comments_select_active on public.community_comments;
 create policy community_comments_select_active on public.community_comments for select to authenticated
 using (exists(select 1 from public.community_posts p where p.id=post_id and p.status='published' and p.deleted_at is null and (p.audience='all' or p.team_id=(select u.team_id from public.users u where u.id=public.dd_comm_current_user_id()))));
 drop policy if exists community_comments_insert_self on public.community_comments;
 create policy community_comments_insert_self on public.community_comments for insert to authenticated
 with check (author_user_id=public.dd_comm_current_user_id() and exists(select 1 from public.community_posts p where p.id=post_id and p.status='published' and p.deleted_at is null));
+drop policy if exists community_reactions_select on public.community_reactions;
+drop policy if exists community_reactions_insert on public.community_reactions;
+drop policy if exists community_reactions_delete on public.community_reactions;
 drop policy if exists community_reactions_select_active on public.community_reactions;
 create policy community_reactions_select_active on public.community_reactions for select to authenticated
 using (exists(select 1 from public.community_posts p where p.id=post_id and p.status='published' and p.deleted_at is null));
@@ -312,4 +337,4 @@ drop policy if exists dd_comm_storage_delete_own_or_owner on storage.objects;
 create policy dd_comm_storage_delete_own_or_owner on storage.objects for delete to authenticated
 using (bucket_id='dd-world-communication' and ((storage.foldername(name))[1]=(select auth.uid())::text or public.dd_comm_is_owner()));
 
-grant select,insert,update,delete on public.meetings,public.meeting_attendance,public.conversations,public.conversation_members,public.messages,public.groups,public.group_members,public.group_messages,public.community_posts,public.community_comments,public.community_reactions,public.notifications,public.user_devices to authenticated;
+grant select,insert,update,delete on public.meetings,public.meeting_attendance,public.conversations,public.conversation_members,public.conversation_messages,public.groups,public.group_members,public.group_messages,public.community_posts,public.community_comments,public.community_reactions,public.notifications,public.user_devices to authenticated;
