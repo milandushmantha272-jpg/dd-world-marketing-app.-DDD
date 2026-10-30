@@ -237,7 +237,7 @@ using(employee_id=dd_connect_private.identity_employee_id()) with check(employee
 
 -- QR verification returns only the fields printed on an employee card. Raw QR tokens are never stored.
 create or replace function public.verify_employee_qr(p_token text)
-returns table(employee_name text,staff_code text,team_name text,position text,status text,verified boolean)
+returns table(employee_name text,staff_code text,team_name text,employee_position text,status text,verified boolean)
 language plpgsql security definer
 set search_path=public,dd_connect_private,extensions,pg_temp
 as $$
