@@ -183,7 +183,7 @@ class EmployeeCenterRepository {
     final id = _uuid.v4();
     final mime = _mime(file.name);
     final safeName = file.name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'),'_');
-    final path = id + '/' + safeName;
+    final path = '$id/$safeName';
     await client.storage.from('dd-training-materials').uploadBinary(path,bytes,fileOptions:FileOptions(contentType:mime));
     try {
       await client.from('training_materials').insert({'title':title,'description':description,'product':product,'material_type':materialType,'file_path':path,'file_name':file.name,'mime_type':mime,'file_size_bytes':bytes.length,'uploaded_by':uploaderId});
