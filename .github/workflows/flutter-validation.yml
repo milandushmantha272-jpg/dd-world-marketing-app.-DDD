@@ -8,6 +8,7 @@ on:
       - feature/commission-center
       - feature/dialog-reports-ezcash
       - feature/communication-collaboration
+      - feature/employee-identity-document-leave
   pull_request:
     branches:
       - main
