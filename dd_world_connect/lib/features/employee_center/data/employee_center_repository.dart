@@ -107,7 +107,7 @@ class EmployeeCenterRepository {
     if (!['image/jpeg','image/png','image/webp','application/pdf'].contains(mime)) throw StateError('Only PDF, JPG, PNG and WEBP files are accepted.');
     final id = _uuid.v4();
     final safeName = file.name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'),'_');
-    final path = employeeId + '/' + id + '/' + safeName;
+    final path = '$employeeId/$id/$safeName';
     await client.storage.from('employee-documents').uploadBinary(path,bytes,fileOptions:FileOptions(contentType:mime));
     try {
       await client.from('employee_documents').insert({'employee_id':employeeId,'document_type':type,'file_path':path,'file_name':file.name,'mime_type':mime,'file_size_bytes':bytes.length,'status':'pending'});
@@ -166,7 +166,7 @@ class EmployeeCenterRepository {
     final id = _uuid.v4();
     final mime = _mime(file.name);
     final safeName = file.name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'),'_');
-    final path = id + '/' + safeName;
+    final path = '$id/$safeName';
     await client.storage.from('dd-downloads').uploadBinary(path,bytes,fileOptions:FileOptions(contentType:mime));
     try {
       await client.from('downloads').insert({'title':title,'description':description,'category':category,'file_path':path,'file_name':file.name,'mime_type':mime,'file_size_bytes':bytes.length,'uploaded_by':uploaderId});
