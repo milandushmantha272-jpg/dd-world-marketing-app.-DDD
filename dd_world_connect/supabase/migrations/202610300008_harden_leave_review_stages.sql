@@ -7,8 +7,8 @@ with check (
  public.is_active_employee()
  and user_id=dd_connect_private.current_employee_id()
  and team_id is not distinct from (select u.team_id from public.users u where u.id=dd_connect_private.current_employee_id())
- and status=case when team_id is null then 'PENDING_OWNER' else 'PENDING_TEAM_LEADER' end
- and review_stage=case when team_id is null then 'PENDING_OWNER' else 'PENDING_TEAM_LEADER' end
+ and status=case when team_id is null or exists(select 1 from public.users requester where requester.id=dd_connect_private.current_employee_id() and requester.role='team_leader') then 'PENDING_OWNER' else 'PENDING_TEAM_LEADER' end
+ and review_stage=case when team_id is null or exists(select 1 from public.users requester where requester.id=dd_connect_private.current_employee_id() and requester.role='team_leader') then 'PENDING_OWNER' else 'PENDING_TEAM_LEADER' end
 );
 create or replace function public.review_leave_request(p_leave_request_id uuid,p_decision text,p_note text default null)
 returns public.leave_requests language plpgsql security definer
@@ -22,7 +22,7 @@ begin
  select * into target from public.leave_requests where id=p_leave_request_id for update;
  if not found then raise exception 'Leave request not found'; end if;
  if p_decision not in ('approved','rejected') then raise exception 'Decision must be approved or rejected'; end if;
- if actor_role='team_leader' and target.review_stage='PENDING_TEAM_LEADER' and target.team_id=actor_team
+ if actor_role='team_leader' and target.user_id<>actor and target.review_stage='PENDING_TEAM_LEADER' and target.team_id=actor_team
    and exists(select 1 from public.users requester where requester.id=target.user_id and requester.team_id=target.team_id)
  then
    insert into public.leave_approvals(leave_request_id,reviewer_id,reviewer_role,decision,note) values(target.id,actor,'team_leader',p_decision,p_note);
