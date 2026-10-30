@@ -189,6 +189,7 @@ class RoleDashboard extends StatelessWidget {
           ('EZ Cash', Icons.account_balance_wallet_outlined),
           ('Meetings', Icons.event_outlined),
           ('Communication Center', Icons.forum_outlined),
+          ('Employee Center', Icons.badge_outlined),
         ],
       EmployeeRole.directAgent => const [
           ('My Profile', Icons.badge_outlined),
@@ -201,6 +202,7 @@ class RoleDashboard extends StatelessWidget {
           ('EZ Cash', Icons.account_balance_wallet_outlined),
           ('Owner Messages', Icons.notifications_outlined),
           ('Communication Center', Icons.forum_outlined),
+          ('Employee Center', Icons.badge_outlined),
         ],
     };
 
