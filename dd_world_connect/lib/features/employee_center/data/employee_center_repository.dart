@@ -94,7 +94,8 @@ class EmployeeCenterRepository {
     }
   }
 
-  Future<String> documentUrl(String path) => client.storage.from('employee-documents').createSignedUrl(path,300);\n  Future<String> employeePhotoUrl(String path) => client.storage.from('employee-profile-photos').createSignedUrl(path,300);
+  Future<String> documentUrl(String path) => client.storage.from('employee-documents').createSignedUrl(path,300);
+  Future<String> employeePhotoUrl(String path) => client.storage.from('employee-profile-photos').createSignedUrl(path,300);
 
   Future<void> reviewDocument({required String documentId,required bool approve,String? note}) async {
     await client.rpc('review_employee_document',params:{'p_document_id':documentId,'p_decision':approve?'approved':'rejected','p_note':note});
