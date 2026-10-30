@@ -98,12 +98,6 @@ as $fn$ select exists(select 1 from public.conversation_members cm where cm.conv
 revoke all on function public.dd_comm_is_conversation_member(uuid) from public;
 grant execute on function public.dd_comm_is_conversation_member(uuid) to authenticated;
 
-create or replace function public.dd_comm_is_group_member(p_group_id uuid)
-returns boolean language sql stable security definer set search_path = public, pg_temp
-as $fn$ select exists(select 1 from public.group_members gm where gm.group_id=p_group_id and gm.employee_id=public.dd_comm_current_user_id()) $fn$;
-revoke all on function public.dd_comm_is_group_member(uuid) from public;
-grant execute on function public.dd_comm_is_group_member(uuid) to authenticated;
-
 create table if not exists public.groups (
  id uuid primary key default gen_random_uuid(),
  name text not null check (length(trim(name)) between 2 and 100),
@@ -124,6 +118,12 @@ create table if not exists public.group_members (
  last_read_at timestamptz,
  primary key(group_id,employee_id)
 );
+create or replace function public.dd_comm_is_group_member(p_group_id uuid)
+returns boolean language sql stable security definer set search_path = public, pg_temp
+as $fn$ select exists(select 1 from public.group_members gm where gm.group_id=p_group_id and gm.employee_id=public.dd_comm_current_user_id()) $fn$;
+revoke all on function public.dd_comm_is_group_member(uuid) from public;
+grant execute on function public.dd_comm_is_group_member(uuid) to authenticated;
+
 create table if not exists public.group_messages (
  id uuid primary key default gen_random_uuid(),
  group_id uuid not null references public.groups(id) on delete cascade,
