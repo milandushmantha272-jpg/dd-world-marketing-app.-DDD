@@ -18,7 +18,7 @@ class CommunicationMessage {
 class FeedPost {
  const FeedPost({required this.id,required this.authorId,required this.authorName,required this.content,required this.createdAt,required this.isAnnouncement,required this.isSuccessStory,this.imagePath,this.videoPath});
  final String id,authorId,authorName,content;final DateTime createdAt;final bool isAnnouncement,isSuccessStory;final String? imagePath,videoPath;
- factory FeedPost.fromJson(Map<String,dynamic> j)=>FeedPost(id:j['id'] as String,authorId:j['author_user_id'] as String,authorName:(j['author_name']??'DD WORLD Staff') as String,content:j['content'] as String,createdAt:DateTime.parse(j['created_at'] as String),isAnnouncement:j['is_announcement'] as bool???false,isSuccessStory:j['is_success_story'] as bool? ?? false,imagePath:j['image_path'] as String?,videoPath:j['video_path'] as String?);
+ factory FeedPost.fromJson(Map<String,dynamic> j)=>FeedPost(id:j['id'] as String,authorId:j['author_user_id'] as String,authorName:(j['author_name']??'DD WORLD Staff') as String,content:j['content'] as String,createdAt:DateTime.parse(j['created_at'] as String),isAnnouncement:j['is_announcement'] as bool? ?? false,isSuccessStory:j['is_success_story'] as bool? ?? false,imagePath:j['image_path'] as String?,videoPath:j['video_path'] as String?);
 }
 @immutable
 class StaffNotification {
