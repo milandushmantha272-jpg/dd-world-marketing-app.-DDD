@@ -16,6 +16,7 @@ import '../../business_centers/presentation/dialog_reports_center_screen.dart';
 import '../../business_centers/presentation/commission_complaints_center_screen.dart';
 import '../../business_centers/presentation/ez_cash_center_screen.dart';
 import '../../communication/presentation/communication_center_screen.dart';
+import '../../communication/application/fcm_notification_service.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -30,6 +31,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   Future<EmployeeProfile>? _profileFuture;
   String? _sessionUserId;
   String? _blockedMessage;
+  String? _pushInitializedFor;
+  FcmNotificationService? _fcmService;
 
   @override
   void initState() {
@@ -69,6 +72,16 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     }
   }
 
+  void _initializePush(EmployeeProfile profile) {
+    if (_pushInitializedFor == profile.id) return;
+    _pushInitializedFor = profile.id;
+    _fcmService ??= FcmNotificationService(Supabase.instance.client);
+    final platform = defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
+    unawaited(_fcmService!.initialize(employeeId: profile.id, platform: platform).catchError((Object error) {
+      debugPrint('FCM registration unavailable: $error');
+    }));
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) return;
@@ -87,6 +100,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _subscription?.cancel();
+    _fcmService?.dispose();
     super.dispose();
   }
 
@@ -122,6 +136,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
             }),
           );
         }
+        _initializePush(snapshot.requireData);
         return RoleDashboard(profile: snapshot.requireData);
       },
     );
