@@ -18,7 +18,7 @@ class CommunicationRepository {
   }
 
   Future<void> createMeeting({required String employeeId,required String role,required String title,required String description,required String type,required DateTime startsAt,required DateTime endsAt,String? location,String? meetingUrl,String? teamId}) async {
-    if(role!='owner'&&role!='team_leader') throw const AuthException('Only Owner and Team Leader can create meetings.');
+    if(role!='owner'&&role!='team_leader') throw AuthException('Only Owner and Team Leader can create meetings.');
     if(role=='team_leader'&&(teamId==null||teamId!=await this.teamId(employeeId))) throw const AuthException('Team Leaders can create meetings only for their own team.');
     await client.from('meetings').insert({'created_by':employeeId,'title':title.trim(),'description':description.trim(),'meeting_type':type,'starts_at':startsAt.toUtc().toIso8601String(),'ends_at':endsAt.toUtc().toIso8601String(),'location':location,'meeting_url':meetingUrl,'team_id':teamId});
   }
