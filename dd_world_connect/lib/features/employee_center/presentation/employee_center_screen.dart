@@ -44,7 +44,12 @@ class _EmployeeCenterScreenState extends ConsumerState<EmployeeCenterScreen> wit
  Widget employeePhoto(EmployeeIdCardRecord card){final path=card.employeePhotoPath;if(path==null||path.isEmpty)return const CircleAvatar(radius:38,backgroundColor:Colors.white24,child:Icon(Icons.person,color:Colors.white,size:38));if(path.startsWith('http'))return CircleAvatar(radius:38,backgroundImage:NetworkImage(path));return FutureBuilder<String>(future:repo.employeePhotoUrl(path),builder:(ctx,s)=>CircleAvatar(radius:38,backgroundColor:Colors.white24,backgroundImage:s.hasData?NetworkImage(s.data!):null,child:s.hasData?null:const Icon(Icons.person,color:Colors.white,size:38)));}\n Widget idLine(String a,String b)=>Padding(padding:const EdgeInsets.only(top:3),child:Text(a+': '+b,style:const TextStyle(color:Colors.white,fontSize:12)));
  Future<void> sharePhysicalCard(EmployeeIdCardRecord card) async {
   final doc=pw.Document();
+  pw.MemoryImage? photo;
+  final photoPath=card.employeePhotoPath;
+  if(photoPath!=null&&photoPath.isNotEmpty&&!photoPath.startsWith('http')){try{photo=pw.MemoryImage(await repo.employeePhotoBytes(photoPath));}catch(_){photo=null;}}
   doc.addPage(pw.Page(pageFormat:PdfPageFormat(85.6*PdfPageFormat.mm,54*PdfPageFormat.mm,marginAll:3*PdfPageFormat.mm),build:(ctx)=>pw.Row(crossAxisAlignment:pw.CrossAxisAlignment.start,children:[
+   if(photo!=null)pw.Container(width:17*PdfPageFormat.mm,height:23*PdfPageFormat.mm,child:pw.Image(photo!,fit:pw.BoxFit.cover)),
+   if(photo!=null)pw.SizedBox(width:2*PdfPageFormat.mm),
    pw.Expanded(child:pw.Column(crossAxisAlignment:pw.CrossAxisAlignment.start,children:[
     pw.Text('DD WORLD MARKETING',style:pw.TextStyle(fontSize:8,fontWeight:pw.FontWeight.bold)),
     pw.SizedBox(height:3),pw.Text(card.employeeName,style:pw.TextStyle(fontSize:9,fontWeight:pw.FontWeight.bold)),
