@@ -21,7 +21,7 @@ dependencies:
   uuid: ^4.5.1
   connectivity_plus: ^6.1.2
   image_picker: ^1.1.2
-  file_picker: ^8.1.7
+  file_picker: ^10.3.10
   excel: ^4.0.6
   pdf: ^3.11.3
   share_plus: ^10.1.4
