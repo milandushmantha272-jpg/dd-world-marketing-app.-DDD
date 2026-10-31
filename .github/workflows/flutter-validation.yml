@@ -8,6 +8,7 @@ on:
       - feature/commission-center
       - feature/dialog-reports-ezcash
       - feature/communication-collaboration
+      - feature/employee-identity-document-leave
   pull_request:
     branches:
       - main
@@ -48,7 +49,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ ! -f android/app/build.gradle && ! -f android/app/build.gradle.kts ]]; then
-            echo "Flutter Android platform is missing in dd_world_connect; generating Android scaffold without touching lib/ or pubspec.yaml."
+            echo "Flutter Android platform is missing in dd_world_connect; generating Android scaffold without touching lib/ or business logic."
             flutter create --platforms=android --org com.ddworld.marketing --project-name dd_world_connect .
           fi
           test -d android
@@ -59,12 +60,12 @@ jobs:
           test -f android/gradle.properties
           test -f android/app/build.gradle || test -f android/app/build.gradle.kts
           if [[ -f android/app/build.gradle.kts ]]; then
-            sed -i -E "s/compileSdk = .*/compileSdk = 36/" android/app/build.gradle.kts
+            sed -i -E "s/compileSdk = .*/compileSdk = 36/; s/targetSdk = .*/targetSdk = 36/" android/app/build.gradle.kts
           else
-            sed -i -E "s/compileSdkVersion .*/compileSdkVersion 36/; s/compileSdk .*/compileSdk 36/" android/app/build.gradle
+            sed -i -E "s/compileSdkVersion .*/compileSdkVersion 36/; s/compileSdk = .*/compileSdk = 36/; s/targetSdkVersion .*/targetSdkVersion 36/; s/targetSdk = .*/targetSdk = 36/" android/app/build.gradle
           fi
-          grep -nE "compileSdk(Version)?[ =]" android/app/build.gradle* || true
-          echo "Android compileSdk pinned to API 36 for current Flutter plugins."
+          grep -nE "compileSdk(Version)?[ =]|targetSdk(Version)?[ =]" android/app/build.gradle* || true
+          echo "Android compileSdk and targetSdk pinned to API 36 for current Flutter plugins."
           echo "Verified Flutter Android platform files:"
           find android -maxdepth 4 -type f | sort | head -100
 
