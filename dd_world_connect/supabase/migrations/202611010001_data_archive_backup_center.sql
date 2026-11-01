@@ -165,7 +165,6 @@ begin
       ('commission_history', 'created_at'),
       ('commission_comments', 'created_at'),
       ('community_comments', 'created_at'),
-      ('community_reactions', 'created_at'),
       ('complaint_messages', 'created_at'),
       ('complaint_attachments', 'created_at'),
       ('conversation_messages', 'created_at'),
@@ -274,15 +273,15 @@ begin
       ('sales',1),('attendance',2),('activations',3),
       ('attendance_logs',4),('activation_logs',5),
       ('commission_history',6),('commission_comments',7),
-      ('community_comments',8),('community_reactions',9),
-      ('complaint_messages',10),('complaint_attachments',11),
-      ('conversation_messages',12),('group_messages',13),
-      ('meeting_attendance',14),('download_history',15),
-      ('training_views',16),('report_downloads',17),
-      ('team_audit_logs',18),('employee_transfer_history',19),
-      ('team_transfer_history',20),('commission_agent_payments',21),
-      ('commission_payment_issues',22),('notifications',23),
-      ('security_alerts',24),('qr_verifications',25),('messages',26)
+      ('community_comments',8),
+      ('complaint_messages',9),('complaint_attachments',10),
+      ('conversation_messages',11),('group_messages',12),
+      ('meeting_attendance',13),('download_history',14),
+      ('training_views',15),('report_downloads',16),
+      ('team_audit_logs',17),('employee_transfer_history',18),
+      ('team_transfer_history',19),('commission_agent_payments',20),
+      ('commission_payment_issues',21),('notifications',22),
+      ('security_alerts',23),('qr_verifications',24),('messages',25)
     ) as allowed(table_name, restore_order)
     order by restore_order
   loop
