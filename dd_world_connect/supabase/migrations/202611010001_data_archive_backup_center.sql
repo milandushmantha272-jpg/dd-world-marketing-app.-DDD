@@ -254,6 +254,7 @@ declare
   item record;
   archived record;
   restored_rows bigint;
+  inserted_rows bigint;
   table_result jsonb := '{}'::jsonb;
   total_restored bigint := 0;
 begin
@@ -295,8 +296,9 @@ begin
         'insert into public.%I select (pg_catalog.jsonb_populate_record(null::public.%I, $1)).* on conflict do nothing',
         item.table_name,item.table_name
       ) using archived.record_data;
-      get diagnostics restored_rows = row_count;
-      total_restored := total_restored + restored_rows;
+      get diagnostics inserted_rows = row_count;
+      restored_rows := restored_rows + inserted_rows;
+      total_restored := total_restored + inserted_rows;
     end loop;
 
     if restored_rows > 0 then
