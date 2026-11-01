@@ -50,73 +50,6 @@ begin
   -- All tables below are an explicit allowlist. Master/configuration tables are never archived.
   for item in
     select * from (values
-      ('sales',1),('attendance',2),('activations',3),
-      ('commission_reports',4),('commissions',5),('ez_cash_records',6),
-      ('meetings',7),('leave_requests',8),
-      ('attendance_logs',9),('activation_logs',10),
-      ('commission_history',11),('commission_comments',12),
-      ('commission_team_submissions',13),('commission_agent_payments',14),
-      ('commission_payment_issues',15),('meeting_attendance',16),
-      ('leave_approvals',17),('ez_cash_history',18),
-      ('community_comments',19),('complaint_messages',20),('complaint_attachments',21),
-      ('conversation_messages',22),('group_messages',23),('download_history',24),
-      ('training_views',25),('report_downloads',26),('team_audit_logs',27),
-      ('employee_transfer_history',28),('team_transfer_history',29),
-      ('employee_status_history',30),('team_leader_history',31),
-      ('dialog_report_distributions',32),('activation_statistics',33),
-      ('attendance_monthly_summary',34),('sales_monthly_summary',35),
-      ('notifications',36),('security_alerts',37),('qr_verifications',38),('messages',39)
-    ) as allowed(table_name, restore_order)old_records(p_backup_id uuid, p_cutoff timestamp with time zone DEFAULT (now() - '1 year'::interval))
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO ''
-AS $function$
-declare
-  actor uuid;
-  session_text text;
-  backup_row public.backup_history%rowtype;
-  item record;
-  staged record;
-  is_same boolean;
-  deleted_rows bigint;
-  archived_rows bigint;
-  table_result jsonb := '{}'::jsonb;
-  total_archived bigint := 0;
-  table_name text;
-  date_column text;
-begin
-  if auth.uid() is null or not dd_connect_private.is_owner() then
-    raise exception 'OWNER_ONLY' using errcode='42501';
-  end if;
-
-  session_text := auth.jwt()->>'session_id';
-  if session_text is null or not exists (
-    select 1 from auth.sessions s
-    where s.id = session_text::uuid
-      and s.user_id = auth.uid()
-      and s.created_at >= now() - interval '10 minutes'
-  ) then
-    raise exception 'FRESH_OTP_REQUIRED' using errcode='42501';
-  end if;
-
-  select * into backup_row
-  from public.backup_history
-  where id = p_backup_id and status = 'verified'
-  for update;
-
-  if not found or backup_row.zip_path is null or backup_row.zip_sha256 is null then
-    raise exception 'VERIFIED_BACKUP_REQUIRED' using errcode='22023';
-  end if;
-  if p_cutoff is null or p_cutoff > now() - interval '12 months' + interval '1 minute' then
-    raise exception 'ARCHIVE_CUTOFF_MUST_BE_AT_LEAST_12_MONTHS_OLD' using errcode='22023';
-  end if;
-
-  actor := (select u.id from public.users u where u.auth_user_id=auth.uid() and lower(u.role)='owner' limit 1);
-
-  -- All tables below are an explicit allowlist. Master/configuration tables are never archived.
-  for item in
-    select * from (values
       ('attendance_logs', 'occurred_at'),
       ('activation_logs', 'created_at'),
       ('commission_history', 'created_at'),
@@ -231,6 +164,80 @@ begin
     'cutoff_at',p_cutoff,
     'tables',table_result
   );
+end
+$function$
+;
+CREATE OR REPLACE FUNCTION public.restore_archive_batch(p_batch_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  actor uuid;
+  item record;
+  archived record;
+  restored_rows bigint;
+  inserted_rows bigint;
+  table_result jsonb := '{}'::jsonb;
+  total_restored bigint := 0;
+begin
+  if auth.uid() is null or not dd_connect_private.is_owner() then
+    raise exception 'OWNER_ONLY' using errcode='42501';
+  end if;
+
+  if not exists(select 1 from public.backup_history b where b.id=p_batch_id and b.status='verified') then
+    raise exception 'VERIFIED_BACKUP_REQUIRED' using errcode='22023';
+  end if;
+
+  actor := (select u.id from public.users u where u.auth_user_id=auth.uid() and lower(u.role)='owner' limit 1);
+
+  -- Restore parent records before their event children.
+  for item in
+    select * from (values
+      ('sales',1),('attendance',2),('activations',3),
+      ('commission_reports',4),('commissions',5),('ez_cash_records',6),
+      ('meetings',7),('leave_requests',8),
+      ('attendance_logs',9),('activation_logs',10),
+      ('commission_history',11),('commission_comments',12),
+      ('commission_team_submissions',13),('commission_agent_payments',14),
+      ('commission_payment_issues',15),('meeting_attendance',16),
+      ('leave_approvals',17),('ez_cash_history',18),
+      ('community_comments',19),('complaint_messages',20),('complaint_attachments',21),
+      ('conversation_messages',22),('group_messages',23),('download_history',24),
+      ('training_views',25),('report_downloads',26),('team_audit_logs',27),
+      ('employee_transfer_history',28),('team_transfer_history',29),
+      ('employee_status_history',30),('team_leader_history',31),
+      ('dialog_report_distributions',32),('activation_statistics',33),
+      ('attendance_monthly_summary',34),('sales_monthly_summary',35),
+      ('notifications',36),('security_alerts',37),('qr_verifications',38),('messages',39)
+    ) as allowed(table_name, restore_order)
+    order by restore_order
+  loop
+    restored_rows := 0;
+    for archived in
+      select a.* from public.archive_records a
+      where a.batch_id=p_batch_id and a.source_table=item.table_name
+      order by a.id
+    loop
+      execute format(
+        'insert into public.%I select (pg_catalog.jsonb_populate_record(null::public.%I, $1)).* on conflict do nothing',
+        item.table_name,item.table_name
+      ) using archived.record_data;
+      get diagnostics inserted_rows = row_count;
+      restored_rows := restored_rows + inserted_rows;
+      total_restored := total_restored + inserted_rows;
+    end loop;
+
+    if restored_rows > 0 then
+      insert into public.archive_logs(batch_id,actor_user_id,action,source_table,affected_count,status,details)
+      values(p_batch_id,actor,'RESTORE',item.table_name,restored_rows,'completed',
+        jsonb_build_object('conflict_policy','do_nothing'));
+    end if;
+    table_result := table_result || jsonb_build_object(item.table_name,restored_rows);
+  end loop;
+
+  return jsonb_build_object('backup_id',p_batch_id,'restored_count',total_restored,'tables',table_result);
 end
 $function$
 ;
