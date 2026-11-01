@@ -68,10 +68,10 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 function canonical(value: unknown): string {
-  if (Array.isArray(value)) return \`[\${value.map(canonical).join(",")}]\`;
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
   if (value && typeof value === "object") {
     const object = value as Record<string, unknown>;
-    return \`{\${Object.keys(object).sort().map((key) => \`\${JSON.stringify(key)}:\${canonical(object[key])}\`).join(",")}}\`;
+    return `{${Object.keys(object).sort().map((key) => `${JSON.stringify(key)}:${canonical(object[key])}`).join(",")}}`;
   }
   return JSON.stringify(value);
 }
@@ -86,7 +86,7 @@ async function fetchAllRows(admin: ReturnType<typeof createClient>, table: strin
   const pageSize = 500;
   for (let offset = 0; ; offset += pageSize) {
     const { data, error } = await admin.from(table).select("*").range(offset, offset + pageSize - 1);
-    if (error) throw new Error(\`Backup read failed for \${table}: \${error.message}\`);
+    if (error) throw new Error(`Backup read failed for ${table}: ${error.message}`);
     const page = (data ?? []) as Record<string, unknown>[];
     rows.push(...page);
     if (page.length < pageSize) break;
@@ -112,7 +112,7 @@ async function stageArchiveCandidates(
     });
     stagedCounts[table] = candidates.length;
     for (const row of candidates) {
-      if (!row.id) throw new Error(\`Archive candidate in \${table} has no id primary key.\`);
+      if (!row.id) throw new Error(`Archive candidate in ${table} has no id primary key.`);
       stagingRows.push({
         backup_id: backupId,
         source_table: table,
@@ -125,7 +125,7 @@ async function stageArchiveCandidates(
   }
   for (let offset = 0; offset < stagingRows.length; offset += 200) {
     const { error } = await admin.from("backup_snapshot_records").insert(stagingRows.slice(offset, offset + 200));
-    if (error) throw new Error(\`Could not stage archive candidates: \${error.message}\`);
+    if (error) throw new Error(`Could not stage archive candidates: ${error.message}`);
   }
   return { stagedCounts, stagedRows: stagingRows.length };
 }
@@ -139,14 +139,14 @@ async function createExcel(snapshot: Record<string, Record<string, unknown>[]>) 
     const serialized = rows.map((row) => canonical(row));
     const parts = Math.max(1, ...serialized.map((value) => Math.ceil(value.length / 30000)));
     sheet.columns = Array.from({ length: parts }, (_, index) => ({
-      header: \`record_json_part_\${index + 1}\`,
-      key: \`part_\${index + 1}\`,
+      header: `record_json_part_${index + 1}`,
+      key: `part_${index + 1}`,
       width: 42,
     }));
     serialized.forEach((value) => {
       const record: Record<string, string> = {};
       for (let index = 0; index < parts; index++) {
-        record[\`part_\${index + 1}\`] = value.slice(index * 30000, (index + 1) * 30000);
+        record[`part_${index + 1}`] = value.slice(index * 30000, (index + 1) * 30000);
       }
       sheet.addRow(record);
     });
@@ -178,13 +178,13 @@ async function createPdfReport(
     y -= size + 7;
   };
   line("DD WORLD CONNECT - YEARLY DATA BACKUP", 16, true);
-  line(\`Backup year: \${backupYear}\`);
-  line(\`Created at: \${new Date().toISOString()}\`);
-  line(\`Total database rows: \${totalRows}\`);
-  line(\`Records older than 12 months staged for archive: \${stagedRows}\`);
+  line(`Backup year: ${backupYear}`);
+  line(`Created at: ${new Date().toISOString()}`);
+  line(`Total database rows: ${totalRows}`);
+  line(`Records older than 12 months staged for archive: ${stagedRows}`);
   y -= 12;
   line("TABLE SUMMARY", 12, true);
-  for (const [table, count] of Object.entries(tableCounts)) line(\`\${table}: \${count}\`);
+  for (const [table, count] of Object.entries(tableCounts)) line(`${table}: ${count}`);
   y -= 12;
   line("This report is a summary. The ZIP contains the complete JSON data snapshot and Excel export.", 9);
   return new Uint8Array(await pdf.save());
@@ -238,7 +238,7 @@ Deno.serve(async (req: Request) => {
       storage_bucket: "dd-backups",
       manifest: { format_version: 1, source: "dd_world_connect", archive_policy_months: 12 },
     });
-    if (createError) throw new Error(\`Could not create backup history: \${createError.message}\`);
+    if (createError) throw new Error(`Could not create backup history: ${createError.message}`);
 
     const snapshot: Record<string, Record<string, unknown>[]> = {};
     const tableCounts: Record<string, number> = {};
@@ -288,11 +288,11 @@ Deno.serve(async (req: Request) => {
       compressionOptions: { level: 6 },
     });
 
-    const prefix = \`\${requestedYear}/\${backupId}\`;
+    const prefix = `${requestedYear}/${backupId}`;
     const paths = {
-      zip: \`\${prefix}/dd-world-connect-\${requestedYear}.zip\`,
-      excel: \`\${prefix}/dd-world-connect-\${requestedYear}.xlsx\`,
-      pdf: \`\${prefix}/dd-world-connect-\${requestedYear}.pdf\`,
+      zip: `${prefix}/dd-world-connect-${requestedYear}.zip`,
+      excel: `${prefix}/dd-world-connect-${requestedYear}.xlsx`,
+      pdf: `${prefix}/dd-world-connect-${requestedYear}.pdf`,
     };
     const files = [
       { path: paths.zip, bytes: zipBytes, contentType: "application/zip" },
@@ -305,17 +305,17 @@ Deno.serve(async (req: Request) => {
         contentType: file.contentType,
         upsert: false,
       });
-      if (error) throw new Error(\`Backup upload failed (\${file.path}): \${error.message}\`);
+      if (error) throw new Error(`Backup upload failed (${file.path}): ${error.message}`);
     }
 
     const hashes: Record<string, string> = {};
     for (const file of files) {
       const { data, error } = await admin.storage.from("dd-backups").download(file.path);
-      if (error || !data) throw new Error(\`Backup verification download failed (\${file.path}): \${error?.message ?? "No data"}\`);
+      if (error || !data) throw new Error(`Backup verification download failed (${file.path}): ${error?.message ?? "No data"}`);
       const downloaded = new Uint8Array(await data.arrayBuffer());
       const expected = await sha256(file.bytes);
       const actual = await sha256(downloaded);
-      if (expected !== actual) throw new Error(\`Backup verification hash mismatch (\${file.path}).\`);
+      if (expected !== actual) throw new Error(`Backup verification hash mismatch (${file.path}).`);
       hashes[file.path] = actual;
     }
 
@@ -332,7 +332,7 @@ Deno.serve(async (req: Request) => {
       manifest: { ...manifest, verified: true, hashes },
       completed_at: new Date().toISOString(),
     }).eq("id", backupId);
-    if (completeError) throw new Error(\`Could not mark backup verified: \${completeError.message}\`);
+    if (completeError) throw new Error(`Could not mark backup verified: ${completeError.message}`);
 
     return jsonResponse({
       success: true,
