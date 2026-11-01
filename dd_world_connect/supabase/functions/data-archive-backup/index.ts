@@ -70,7 +70,6 @@ const ARCHIVE_DATE_COLUMNS: Record<string, string> = {
   attendance: "date",
   activations: "created_at",
   commissions: "period_month",
-  ez_cash_records: "period_month",
   meetings: "starts_at",
   leave_requests: "start_date",
 };
