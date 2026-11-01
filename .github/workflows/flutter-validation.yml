@@ -9,6 +9,7 @@ on:
       - feature/dialog-reports-ezcash
       - feature/communication-collaboration
       - feature/employee-identity-document-leave
+      - feature/data-archive-backup-center
   pull_request:
     branches:
       - main
