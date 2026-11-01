@@ -10,6 +10,7 @@ on:
       - feature/communication-collaboration
       - feature/employee-identity-document-leave
       - feature/data-archive-backup-center
+      - feature/owner-data-backup-archive-center
   pull_request:
     branches:
       - main
