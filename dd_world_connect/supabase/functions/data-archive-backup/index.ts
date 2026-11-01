@@ -29,7 +29,8 @@ const TABLES = [
   "conversations","conversation_members","conversation_messages","groups","group_members",
   "group_messages","user_devices","employee_id_cards","qr_verifications",
   "employee_documents","document_verifications","leave_approvals","downloads",
-  "download_history","training_materials","training_views"
+  "download_history","training_materials","training_views",
+  "backup_history","archive_records","archive_logs"
 ];
 
 const ARCHIVE_DATE_COLUMNS: Record<string, string> = {
@@ -222,6 +223,7 @@ Deno.serve(async (req: Request) => {
   }
 
   let backupId: string | null = null;
+  const uploadedPaths: string[] = [];
   try {
     const body = await req.json().catch(() => ({}));
     const requestedYear = Number(body.backup_year ?? new Date().getUTCFullYear());
@@ -244,7 +246,8 @@ Deno.serve(async (req: Request) => {
     const tableCounts: Record<string, number> = {};
     let totalRows = 0;
     for (const table of TABLES) {
-      const rows = await fetchAllRows(admin, table);
+      let rows = await fetchAllRows(admin, table);
+      if (table === "backup_history") rows = rows.filter((row) => row.id !== backupId);
       snapshot[table] = rows;
       tableCounts[table] = rows.length;
       totalRows += rows.length;
@@ -306,6 +309,7 @@ Deno.serve(async (req: Request) => {
         upsert: false,
       });
       if (error) throw new Error(`Backup upload failed (${file.path}): ${error.message}`);
+      uploadedPaths.push(file.path);
     }
 
     const hashes: Record<string, string> = {};
@@ -349,6 +353,8 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Backup failed.";
     if (backupId) {
+      await admin.from("backup_snapshot_records").delete().eq("backup_id", backupId);
+      if (uploadedPaths.length > 0) await admin.storage.from("dd-backups").remove(uploadedPaths);
       await admin.from("backup_history").update({
         status: "failed",
         failure_message: message.slice(0, 2000),
