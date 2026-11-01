@@ -19,7 +19,7 @@ import '../../business_centers/presentation/ez_cash_center_screen.dart';
 import '../../communication/presentation/communication_center_screen.dart';
 import '../../communication/application/fcm_notification_service.dart';
 import '../../employee_center/presentation/employee_center_screen.dart';
-import '../../backup/presentation/data_archive_backup_center_screen.dart';
+import '../../data_archive/presentation/backup_center_screen.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -286,7 +286,7 @@ class RoleDashboard extends StatelessWidget {
                                 EmployeeRole.directAgent => const {EmployeeRole.directAgent},
                               },
                               child: item.$1 == 'Data Archive & Backup'
-                                  ? DataArchiveBackupCenterScreen(profile: profile)
+                                  ? BackupCenterDashboardScreen(profile: profile)
                                   : item.$1 == 'Employee Center'
                                   ? EmployeeCenterScreen(profile: profile)
                                   : item.$1 == 'Communication Center'
