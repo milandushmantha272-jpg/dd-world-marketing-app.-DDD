@@ -1,0 +1,42 @@
+name: DD WORLD CONNECT Flutter CI
+
+on:
+  push:
+    branches:
+      - main
+      - feature/dd-world-connect-foundation
+  pull_request:
+    branches:
+      - main
+      - feature/dd-world-connect-foundation
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  flutter-checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dd_world_connect
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Analyze
+        run: flutter analyze
+      - name: Widget tests
+        run: flutter test
+      - name: Set up Deno for Supabase Edge Functions
+        uses: denoland/setup-deno@v2
+      - name: Type-check authentication Edge Functions
+        run: |
+          deno check supabase/functions/employee-session-bootstrap/index.ts
+          deno check supabase/functions/owner-reset-device/index.ts

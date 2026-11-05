@@ -2,7 +2,13 @@ name: Build Permanent Android APK
 
 on:
   push:
-    branches: [ main, master ]
+    branches:
+      - main
+      - feature/dd-world-connect-foundation
+  pull_request:
+    branches:
+      - main
+      - feature/dd-world-connect-foundation
   workflow_dispatch:
 
 permissions:
@@ -22,36 +28,28 @@ jobs:
         with:
           node-version: 22
 
-      
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
 
-
-      
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
           packages: "platforms;android-36 build-tools;36.0.0 platform-tools"
 
-
       - name: Install Dependencies
-        run: |
-          npm install --legacy-peer-deps
+        run: npm install --legacy-peer-deps
 
       - name: Build Web Application
-        run: |
-          npm run build --if-present
+        run: npm run build --if-present
 
       - name: Sync Capacitor Android Assets
-        run: |
-          npx cap sync android
+        run: npx cap sync android
 
       - name: Fix Gradle Permission
-        run: |
-          chmod +x android/gradlew
+        run: chmod +x android/gradlew
 
       - name: Force Override Android Settings & Bypass Errors
         run: |
@@ -60,11 +58,11 @@ jobs:
           sed -i 's/package=.*/package="com.ddworld.marketing.app"/' android/app/src/main/AndroidManifest.xml
 
       - name: Build Android Debug APK
-        run: |
-          cd android && ./gradlew assembleDebug --no-daemon
+        run: cd android && ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: dd-world-marketing-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
