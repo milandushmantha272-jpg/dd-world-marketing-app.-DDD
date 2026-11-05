@@ -1,0 +1,79 @@
+name: Build DD WORLD Role APKs
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-role-apks:
+    name: Build ${{ matrix.target }} APK
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: agent
+            app_id: com.ddworld.marketing.agent
+            artifact: DD-World-Agent-APK
+          - target: management
+            app_id: com.ddworld.marketing.management
+            artifact: DD-World-Management-APK
+          - target: audit
+            app_id: com.ddworld.marketing.audit
+            artifact: DD-World-Audit-APK
+
+    env:
+      VITE_APP_TARGET: ${{ matrix.target }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platforms;android-36 build-tools;36.0.0 platform-tools"
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+      - name: Build role-specific web app
+        run: npm run build
+      - name: Sync Capacitor
+        run: npx cap sync android
+      - name: Configure role-specific Android package
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x android/gradlew
+          sed -i 's/applicationId .*/applicationId "${{ matrix.app_id }}"/' android/app/build.gradle
+          echo "android.defaults.buildFeatures.buildconfig=true" >> android/local.properties
+      - name: Assemble APK
+        run: cd android && ./gradlew assembleDebug --no-daemon
+      - name: Name APK and calculate checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist-apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk "dist-apk/${{ matrix.artifact }}.apk"
+          sha256sum "dist-apk/${{ matrix.artifact }}.apk" > "dist-apk/${{ matrix.artifact }}.sha256"
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist-apk/*
+          if-no-files-found: error
+          retention-days: 30
