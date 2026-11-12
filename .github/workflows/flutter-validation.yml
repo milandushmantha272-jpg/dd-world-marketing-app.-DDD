@@ -56,6 +56,22 @@ jobs:
           echo "Verified Flutter Android platform files:"
           find android -maxdepth 4 -type f | sort | head -100
 
+      - name: Set Android compile SDK to 36 for plugin metadata requirements
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f android/app/build.gradle.kts ]]; then
+            sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
+            grep -qE 'compileSdk = 36' android/app/build.gradle.kts
+          elif [[ -f android/app/build.gradle ]]; then
+            sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 36/' android/app/build.gradle
+            grep -qE 'compileSdkVersion 36' android/app/build.gradle
+          else
+            echo "Android app Gradle file not found" >&2
+            exit 1
+          fi
+          echo "Configured Android compileSdk 36; targetSdk and minSdk remain unchanged."
+
       - name: Install dependencies
         run: flutter pub get
 
