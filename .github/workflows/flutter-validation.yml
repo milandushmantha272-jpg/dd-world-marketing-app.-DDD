@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feature/dd-world-connect-foundation
+      - feature/commission-center
   pull_request:
     branches:
       - main
