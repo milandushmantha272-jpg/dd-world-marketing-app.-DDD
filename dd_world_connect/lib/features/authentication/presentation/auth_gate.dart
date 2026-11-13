@@ -275,7 +275,7 @@ class RoleDashboard extends StatelessWidget {
                           (item.$1 == 'Employees' && profile.role == EmployeeRole.owner) ||
                           (item.$1 == 'Teams' && profile.role == EmployeeRole.owner) ||
                           (item.$1 == 'My Team' && (profile.role == EmployeeRole.teamLeader || profile.role == EmployeeRole.agent)) ||
-                          ((item.$1 == 'My Profile' && (profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent)) || item.$1.toLowerCase().contains('attendance')) || item.$1 == 'Reports Center' || item.$1 == 'Team Reports' || item.$1 == 'Dialog Reports' || item.$1 == 'EZ Cash' || item.$1 == 'Commission Complaints' || item.$1 == 'Complaints' || item.$1 == 'Communication Center' || item.$1 == 'Employee Center' || (item.$1 == 'Data Archive & Backup' && profile.role == EmployeeRole.owner)
+                          ((item.$1 == 'My Profile' && (profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent)) || item.$1.toLowerCase().contains('attendance')) || item.$1 == 'Reports Center' || item.$1 == 'Team Reports' || item.$1 == 'Dialog Reports' || item.$1 == 'EZ Cash' || item.$1 == 'Commission Complaints' || item.$1 == 'Complaints' || item.$1 == 'Meetings' || item.$1 == 'Owner Messages' || item.$1 == 'Communication Center' || item.$1 == 'Employee Center' || (item.$1 == 'Data Archive & Backup' && profile.role == EmployeeRole.owner)
                       ? () => Navigator.of(context).push(MaterialPageRoute<void>(
                             builder: (_) => RoleGuard(
                               profile: profile,
@@ -289,7 +289,7 @@ class RoleDashboard extends StatelessWidget {
                                   ? DataArchiveBackupCenterScreen(profile: profile)
                                   : item.$1 == 'Employee Center'
                                   ? EmployeeCenterScreen(profile: profile)
-                                  : item.$1 == 'Communication Center'
+                                  : (item.$1 == 'Meetings' || item.$1 == 'Owner Messages' || item.$1 == 'Communication Center')
                                   ? CommunicationCenterScreen(profile: profile)
                                   : (item.$1 == 'Commissions' || item.$1 == 'My Commission')
                                   ? CommissionCenterScreen(profile: profile)
