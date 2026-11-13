@@ -5,10 +5,12 @@ on:
     branches:
       - main
       - feature/dd-world-connect-foundation
+      - release/dd-world-connect-v1
   pull_request:
     branches:
       - main
       - feature/dd-world-connect-foundation
+      - release/dd-world-connect-v1
   workflow_dispatch:
 
 permissions:
@@ -32,7 +34,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          flutter-version: '3.47.9'
           cache: true
 
       - name: Flutter version
