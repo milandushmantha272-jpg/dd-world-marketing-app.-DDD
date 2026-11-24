@@ -6,11 +6,13 @@ on:
       - main
       - feature/dd-world-connect-foundation
       - release/dd-world-connect-v1
+      - integration/dd-world-connect-features-clean-2026-11-13
   pull_request:
     branches:
       - main
       - feature/dd-world-connect-foundation
       - release/dd-world-connect-v1
+      - integration/dd-world-connect-features-clean-2026-11-13
   workflow_dispatch:
 
 permissions:
