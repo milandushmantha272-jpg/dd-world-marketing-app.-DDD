@@ -7,7 +7,7 @@ class EmployeeRepository {
   final SupabaseClient _client;
 
   Future<String> _currentEmployeeId() async {
-    final authId = await _currentEmployeeId();
+    final authId = _client.auth.currentUser?.id;
     if (authId == null) throw const AuthException('Sign in again to continue.');
     final row = await _client
         .from('users')
