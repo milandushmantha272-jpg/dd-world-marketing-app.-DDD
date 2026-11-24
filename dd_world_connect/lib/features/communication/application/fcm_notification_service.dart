@@ -11,6 +11,7 @@ class FcmNotificationService {
   StreamSubscription<RemoteMessage>? foregroundSubscription;
 
   Future<void> initialize({
+    required String employeeId,
     required String deviceRegistrationId,
     required String platform,
   }) async {
@@ -21,10 +22,10 @@ class FcmNotificationService {
     final messaging = FirebaseMessaging.instance;
     await messaging.requestPermission(alert: true, badge: true, sound: true);
     final token = await messaging.getToken();
-    if (token != null) await _save(deviceRegistrationId, platform, token);
+    if (token != null) await _save(employeeId, deviceRegistrationId, platform, token);
     await tokenSubscription?.cancel();
     tokenSubscription = messaging.onTokenRefresh.listen(
-      (value) => _save(deviceRegistrationId, platform, value),
+      (value) => _save(employeeId, deviceRegistrationId, platform, value),
       onError: (Object error) => debugPrint('FCM token refresh failed: $error'),
     );
     await foregroundSubscription?.cancel();
@@ -33,14 +34,50 @@ class FcmNotificationService {
     });
   }
 
-  Future<void> _save(String deviceRegistrationId, String platform, String token) async {
-    await client.from('user_devices').update({
-      'fcm_token': token,
-      'platform': platform,
-      'is_active': true,
-      'last_seen_at': DateTime.now().toUtc().toIso8601String(),
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    }).eq('id', deviceRegistrationId).eq('is_active', true);
+  Future<void> _save(
+    String employeeId,
+    String deviceRegistrationId,
+    String platform,
+    String token,
+  ) async {
+    try {
+      final reservation = await client
+          .from('user_devices')
+          .select('device_label')
+          .eq('id', deviceRegistrationId)
+          .eq('employee_id', employeeId)
+          .eq('is_active', true)
+          .maybeSingle();
+      if (reservation == null) return;
+
+      final existing = await client
+          .from('user_devices')
+          .select('id,employee_id')
+          .eq('fcm_token', token)
+          .maybeSingle();
+
+      if (existing != null && existing['employee_id']?.toString() != employeeId) {
+        debugPrint('FCM token is already registered to another employee; refusing reassignment.');
+        return;
+      }
+
+      final targetId = existing?['id']?.toString() ?? deviceRegistrationId;
+      await client.from('user_devices').update({
+        'fcm_token': token,
+        'platform': platform,
+        'device_label': reservation['device_label'],
+        'is_active': true,
+        'last_seen_at': DateTime.now().toUtc().toIso8601String(),
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      }).eq('id', targetId).eq('employee_id', employeeId);
+
+      if (targetId != deviceRegistrationId) {
+        await client.from('user_devices').delete().eq('id', deviceRegistrationId).eq('employee_id', employeeId);
+      }
+    } catch (error) {
+      // A unique-token conflict or temporary network error must not crash sign-in.
+      debugPrint('FCM device token registration failed: $error');
+    }
   }
 
   Future<void> dispose() async {
