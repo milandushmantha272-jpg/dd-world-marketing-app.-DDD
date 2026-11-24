@@ -23,6 +23,9 @@ jobs:
     defaults:
       run:
         working-directory: dd_world_connect
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY || secrets.SUPABASE_ANON_KEY || vars.SUPABASE_PUBLISHABLE_KEY || vars.SUPABASE_ANON_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -60,7 +63,14 @@ jobs:
       - name: flutter test
         run: flutter test
 
-      - name: flutter build apk --debug
+      - name: Verify Supabase runtime configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_URL" || { echo "Missing SUPABASE_URL GitHub secret or variable."; exit 1; }
+          test -n "$SUPABASE_PUBLISHABLE_KEY" || { echo "Missing SUPABASE_PUBLISHABLE_KEY (or SUPABASE_ANON_KEY) GitHub secret or variable."; exit 1; }
+
+      - name: flutter build apk --debug --dart-define=SUPABASE_URL="$SUPABASE_URL" --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
         shell: bash
         run: |
           start=$(date +%s)
@@ -70,7 +80,7 @@ jobs:
           test -s build/app/outputs/flutter-apk/app-debug.apk
           ls -lh build/app/outputs/flutter-apk/app-debug.apk
 
-      - name: flutter build apk --release
+      - name: flutter build apk --release --dart-define=SUPABASE_URL="$SUPABASE_URL" --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
         shell: bash
         run: |
           start=$(date +%s)
