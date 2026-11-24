@@ -60,20 +60,21 @@ class FcmNotificationService {
         debugPrint('FCM token is already registered to another employee; refusing reassignment.');
         return;
       }
+      if (existing != null && existing['id']?.toString() != deviceRegistrationId) {
+        debugPrint('FCM token belongs to a different device registration; refusing reassignment.');
+        return;
+      }
 
-      final targetId = existing?['id']?.toString() ?? deviceRegistrationId;
+      // The server owns registration state and device fingerprints. The client
+      // may only attach/refresh the FCM token on its already-active reservation.
       await client.from('user_devices').update({
         'fcm_token': token,
         'platform': platform,
-        'device_label': reservation['device_label'],
-        'is_active': true,
         'last_seen_at': DateTime.now().toUtc().toIso8601String(),
         'updated_at': DateTime.now().toUtc().toIso8601String(),
-      }).eq('id', targetId).eq('employee_id', employeeId);
-
-      if (targetId != deviceRegistrationId) {
-        await client.from('user_devices').delete().eq('id', deviceRegistrationId).eq('employee_id', employeeId);
-      }
+      }).eq('id', deviceRegistrationId)
+        .eq('employee_id', employeeId)
+        .eq('is_active', true);
     } catch (error) {
       // A unique-token conflict or temporary network error must not crash sign-in.
       debugPrint('FCM device token registration failed: $error');
