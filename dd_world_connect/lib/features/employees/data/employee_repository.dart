@@ -93,7 +93,7 @@ class EmployeeRepository {
   }
   Future<void> reviewApproval(String requestId,String employeeId,{required bool approve,required String reason}) async {
     await _client.from('employee_approval_requests').update({'status':approve?'APPROVED':'REJECTED','reviewed_by':await _currentEmployeeId(),'review_reason':reason.trim(),'reviewed_at':DateTime.now().toUtc().toIso8601String()}).eq('id',requestId);
-    await _client.from('users').update({'id_approval_status':approve?'APPROVED':'REJECTED','status':approve?'active':'inactive'}).eq('id',employeeId);
+    await _client.from('users').update({'id_approval_status':approve?'APPROVED':'REJECTED','status':approve?'active':'inactive','employment_status':approve?'ACTIVE':'INACTIVE'}).eq('id',employeeId);
   }
   Future<List<Map<String,dynamic>>> history(String id) async {
     final rows = await Future.wait([_client.from('employee_status_history').select('id,previous_status,new_status,reason,changed_at').eq('employee_id',id).order('changed_at',ascending:false),_client.from('employee_transfer_history').select('id,previous_team_id,new_team_id,reason,transferred_at').eq('employee_id',id).order('transferred_at',ascending:false),_client.from('employee_approval_requests').select('id,status,review_reason,created_at,reviewed_at').eq('employee_id',id).order('created_at',ascending:false)]);
