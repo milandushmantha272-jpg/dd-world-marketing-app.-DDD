@@ -24,8 +24,8 @@ jobs:
       run:
         working-directory: dd_world_connect
     env:
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
-      SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY || secrets.SUPABASE_ANON_KEY || vars.SUPABASE_PUBLISHABLE_KEY || vars.SUPABASE_ANON_KEY }}
+      SUPABASE_URL: https://gbszujosgslsjaiibasa.supabase.co
+      SUPABASE_PUBLISHABLE_KEY: sb_publishable_y7AXK7PAs06E66sgfn6aaQ_06WNuS0l
     steps:
       - name: Checkout
         uses: actions/checkout@v4
