@@ -60,30 +60,27 @@ Deno.serve(async (request: Request) => {
   if (!target) return respond(404, { code: "EMPLOYEE_NOT_FOUND", error: "Employee code was not found." });
   if (target.id === actor.id) return respond(400, { code: "SELF_RESET_NOT_ALLOWED", error: "Use the Owner support process to reset your own device." });
 
-  const { data: pendingRows, error: pendingLookupError } = await admin.from("user_devices")
-    .select("id").eq("employee_id", target.id).like("fcm_token", "pending:%");
-  if (pendingLookupError) {
-    console.error("Pending device lookup failed", pendingLookupError.message);
+  const { data: activeRows, error: activeLookupError } = await admin.from("user_devices")
+    .select("id").eq("employee_id", target.id).eq("is_active", true);
+  if (activeLookupError) {
+    console.error("Active device lookup failed", activeLookupError.message);
     return respond(500, { code: "DEVICE_RESET_FAILED", error: "Could not reset the employee device." });
   }
 
-  const { data: revoked, error: revokeError } = await admin.from("user_devices")
-    .update({ is_active: false, updated_at: new Date().toISOString() })
-    .eq("employee_id", target.id).eq("is_active", true).select("id");
-  if (revokeError) {
-    console.error("Device revocation failed", revokeError.message);
-    return respond(500, { code: "DEVICE_RESET_FAILED", error: "Could not reset the employee device." });
-  }
-
-  // Free the unique temporary FCM reservation so a different installation can
-  // register, while preserving the old device fingerprint as a revocation marker.
-  for (const row of pendingRows ?? []) {
-    const { error: markerError } = await admin.from("user_devices")
-      .update({ fcm_token: `revoked:${target.id}:${row.id}`, is_active: false, updated_at: new Date().toISOString() })
-      .eq("id", row.id);
-    if (markerError) {
-      console.error("Device reservation marker update failed", markerError.message);
-      return respond(500, { code: "DEVICE_RESET_FAILED", error: "The device was revoked but its registration marker could not be updated. Contact system support." });
+  // Revoke every active registration and replace its unique FCM token with a
+  // tombstone. This preserves the device fingerprint while freeing the old
+  // token for a newly authorized installation.
+  for (const row of activeRows ?? []) {
+    const { error: revokeError } = await admin.from("user_devices")
+      .update({
+        fcm_token: `revoked:${target.id}:${row.id}`,
+        is_active: false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", row.id).eq("employee_id", target.id).eq("is_active", true);
+    if (revokeError) {
+      console.error("Device revocation failed", revokeError.message);
+      return respond(500, { code: "DEVICE_RESET_FAILED", error: "Could not fully revoke the employee device. Contact system support." });
     }
   }
 
@@ -94,7 +91,7 @@ Deno.serve(async (request: Request) => {
     event_type: "DEVICE_REGISTRATION_RESET",
     metadata: {
       employee_code: target.agent_code,
-      revoked_registration_count: revoked?.length ?? 0,
+      revoked_registration_count: activeRows?.length ?? 0,
     },
   });
   if (auditError) {
