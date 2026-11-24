@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:dd_world_connect/features/authentication/data/auth_repository.dart';
 import 'package:dd_world_connect/features/authentication/domain/employee_profile.dart';
 
 void main() {
@@ -39,4 +41,25 @@ void main() {
       throwsA(isA<FormatException>()),
     );
   });
+  group('AuthRepository.normalizePhone', () {
+    final repository = AuthRepository(
+      client: SupabaseClient('https://example.supabase.co', 'test-anon-key'),
+    );
+
+    test('converts a local Sri Lankan mobile number to E.164', () {
+      expect(repository.normalizePhone('0771234567'), '+94771234567');
+    });
+
+    test('accepts an already normalized E.164 number', () {
+      expect(repository.normalizePhone('+94771234567'), '+94771234567');
+    });
+
+    test('rejects invalid mobile numbers', () {
+      expect(
+        () => repository.normalizePhone('12345'),
+        throwsA(isA<AuthInputException>()),
+      );
+    });
+  });
+
 }
