@@ -113,14 +113,8 @@ class EmployeeRepository {
   }
   String? _normalizePhone(String value) {
     final phone = value.trim().replaceAll(RegExp(r'[\s()\-]'), '');
-    if (RegExp(r'^0[0-9]{9}
-  String? _date(DateTime? value) => value == null ? null : '${value.year.toString().padLeft(4,'0')}-${value.month.toString().padLeft(2,'0')}-${value.day.toString().padLeft(2,'0')}';
-}
-).hasMatch(phone)) return '+94' + phone.substring(1);
-    if (RegExp(r'^\+[1-9]\d{7,14}
-  String? _date(DateTime? value) => value == null ? null : '${value.year.toString().padLeft(4,'0')}-${value.month.toString().padLeft(2,'0')}-${value.day.toString().padLeft(2,'0')}';
-}
-).hasMatch(phone)) return phone;
+    if (RegExp(r'^0[0-9]{9}$').hasMatch(phone)) return '+94' + phone.substring(1);
+    if (RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(phone)) return phone;
     return null;
   }
 
