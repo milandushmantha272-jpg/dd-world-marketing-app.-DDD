@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'employee_approvals_screen.dart';
-import '../../authentication/data/auth_repository.dart';
 import '../application/employee_controller.dart';
 import '../data/employee_repository.dart';
 import '../domain/employee.dart';
@@ -22,7 +21,7 @@ class EmployeeManagementScreen extends ConsumerWidget {
 
 class EmployeeDetailsScreen extends ConsumerWidget {
  const EmployeeDetailsScreen({super.key,required this.employeeId,required this.canManage});final String employeeId;final bool canManage;
- @override Widget build(BuildContext context,WidgetRef ref){final state=ref.watch(employeeDetailsProvider(employeeId));return Scaffold(appBar:AppBar(title:const Text('Employee Details'),actions:[if(canManage)PopupMenuButton<String>(onSelected:(v)=>state.whenData((e){if(v=='edit')Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>EmployeeFormScreen(employee:e))).then((_){ref.invalidate(employeeDetailsProvider(employeeId));ref.invalidate(employeeListProvider);});if(v=='status')_changeStatus(context,ref,e);if(v=='transfer')_transfer(context,ref,e);if(v=='history')Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>EmployeeHistoryScreen(employeeId:employeeId)));if(v=='device')_resetDeviceRegistration(context,e);}),itemBuilder:(_)=>const [PopupMenuItem(value:'edit',child:Text('Edit profile')),PopupMenuItem(value:'status',child:Text('Change status')),PopupMenuItem(value:'transfer',child:Text('Transfer employee')),PopupMenuItem(value:'history',child:Text('Employee history')),PopupMenuItem(value:'device',child:Text('Reset registered device'))])]),body:state.when(loading:()=>const Center(child:CircularProgressIndicator()),error:(e,_)=>Center(child:Text('Could not load employee: $e')),data:(e)=>ListView(padding:const EdgeInsets.all(18),children:[Card(child:Padding(padding:const EdgeInsets.all(20),child:Column(children:[GestureDetector(onTap:canManage?()=>_pickPhoto(context,ref,e):null,child:CircleAvatar(radius:36,backgroundImage:e.profilePhotoUrl==null?null:NetworkImage(e.profilePhotoUrl!),child:e.profilePhotoUrl==null?Text(e.fullName.isEmpty?'?':e.fullName[0].toUpperCase()):null)),const SizedBox(height:12),Text(e.fullName,style:Theme.of(context).textTheme.headlineSmall),Text('Employee code: ${e.code}'),Chip(label:Text(e.status.label))]))),_details('Contact',[('Phone',e.phone),('Email',e.email),('NIC',e.nic),('Address',e.address)]),_details('Employment',[('Role',e.role.label),('Team',e.teamName),('Date of birth',_date(e.dateOfBirth)),('Join date',_date(e.joinDate)),('Approval',e.approvalStatus)]),if(canManage)FilledButton.icon(onPressed:()=>Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>EmployeeHistoryScreen(employeeId:employeeId))),icon:const Icon(Icons.history),label:const Text('View audit and transfer history'))])));}
+ @override Widget build(BuildContext context,WidgetRef ref){final state=ref.watch(employeeDetailsProvider(employeeId));return Scaffold(appBar:AppBar(title:const Text('Employee Details'),actions:[if(canManage)PopupMenuButton<String>(onSelected:(v)=>state.whenData((e){if(v=='edit')Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>EmployeeFormScreen(employee:e))).then((_){ref.invalidate(employeeDetailsProvider(employeeId));ref.invalidate(employeeListProvider);});if(v=='status')_changeStatus(context,ref,e);if(v=='transfer')_transfer(context,ref,e);if(v=='history')Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>EmployeeHistoryScreen(employeeId:employeeId)));}),itemBuilder:(_)=>const [PopupMenuItem(value:'edit',child:Text('Edit profile')),PopupMenuItem(value:'status',child:Text('Change status')),PopupMenuItem(value:'transfer',child:Text('Transfer employee')),PopupMenuItem(value:'history',child:Text('Employee history'))])]),body:state.when(loading:()=>const Center(child:CircularProgressIndicator()),error:(e,_)=>Center(child:Text('Could not load employee: $e')),data:(e)=>ListView(padding:const EdgeInsets.all(18),children:[Card(child:Padding(padding:const EdgeInsets.all(20),child:Column(children:[GestureDetector(onTap:canManage?()=>_pickPhoto(context,ref,e):null,child:CircleAvatar(radius:36,backgroundImage:e.profilePhotoUrl==null?null:NetworkImage(e.profilePhotoUrl!),child:e.profilePhotoUrl==null?Text(e.fullName.isEmpty?'?':e.fullName[0].toUpperCase()):null)),const SizedBox(height:12),Text(e.fullName,style:Theme.of(context).textTheme.headlineSmall),Text('Employee code: ${e.code}'),Chip(label:Text(e.status.label))]))),_details('Contact',[('Phone',e.phone),('Email',e.email),('NIC',e.nic),('Address',e.address)]),_details('Employment',[('Role',e.role.label),('Team',e.teamName),('Date of birth',_date(e.dateOfBirth)),('Join date',_date(e.joinDate)),('Approval',e.approvalStatus)]),if(canManage)FilledButton.icon(onPressed:()=>Navigator.push(context,MaterialPageRoute<void>(builder:(_)=>EmployeeHistoryScreen(employeeId:employeeId))),icon:const Icon(Icons.history),label:const Text('View audit and transfer history'))])));}
   Widget _details(String title, List<(String, String?)> values) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -66,39 +65,3 @@ class _EmployeeFormScreenState extends ConsumerState<EmployeeFormScreen>{final _
 
 class EmployeeHistoryScreen extends ConsumerWidget{const EmployeeHistoryScreen({super.key,required this.employeeId});final String employeeId;@override Widget build(BuildContext context,WidgetRef ref){final data=ref.watch(employeeHistoryProvider(employeeId));return Scaffold(appBar:AppBar(title:const Text('Employee History')),body:data.when(loading:()=>const Center(child:CircularProgressIndicator()),error:(e,_)=>Center(child:Text('History unavailable: $e')),data:(events)=>events.isEmpty?const Center(child:Text('No history recorded yet.')):ListView.separated(padding:const EdgeInsets.all(16),itemCount:events.length,separatorBuilder:(_,__)=>const Divider(),itemBuilder:(ctx,i){final e=events[i];final kind=e['kind'].toString();final detail=kind=='Status'?' ${e['previous_status']??'New'} → ${e['new_status']??''}':kind=='Transfer'?' ${e['previous_team_id']??'—'} → ${e['new_team_id']??'—'}':' ${e['status']??''}';return ListTile(leading:const Icon(Icons.history),title:Text('$kind$detail'),subtitle:Text('${e['reason']??e['review_reason']??''}\n${e['changed_at']??e['transferred_at']??e['created_at']??''}'),isThreeLine:true);})));}}
 
-Future<void> _resetDeviceRegistration(BuildContext context, Employee employee) async {
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
-      title: const Text('Reset registered device?'),
-      content: Text(
-        'This will revoke the active DD WORLD CONNECT device for ${employee.fullName} (${employee.code}). The employee must sign in again from a different authorized device.',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(dialogContext, false),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(dialogContext, true),
-          child: const Text('Reset device'),
-        ),
-      ],
-    ),
-  );
-  if (confirmed != true) return;
-  try {
-    await AuthRepository().ownerResetDeviceRegistration(employee.code);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Device registration reset for ${employee.code}.')),
-      );
-    }
-  } catch (error) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Device reset failed: $error')),
-      );
-    }
-  }
-}
