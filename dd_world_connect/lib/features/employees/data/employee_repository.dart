@@ -33,6 +33,12 @@ class EmployeeRepository {
   Future<List<EmployeeTeam>> teams() async => (await _client.from('teams').select('id,name,leader_id').order('name')).map((r) => EmployeeTeam.fromJson(Map<String,dynamic>.from(r))).toList();
 
   Future<void> create({required String code, required String name, required String phone, required EmployeeRole role, required EmployeeStatus status, required String? teamId, String? nic, String? address, DateTime? dob, DateTime? joinDate}) async {
+    final normalizedPhone = _normalizePhone(phone);
+    if (normalizedPhone == null) throw const FormatException('Enter a valid Sri Lankan or international mobile number.');
+    final existingPhones = await _client.from('users').select('phone');
+    if (existingPhones.any((row) => _normalizePhone(row['phone']?.toString() ?? '') == normalizedPhone)) {
+      throw const FormatException('This mobile number is already assigned to another employee.');
+    }
     final inserted = await _client.from('users').insert({'agent_code':code.trim(),'name':name.trim(),'phone':phone.trim(),'role':role.dbValue,'status':status==EmployeeStatus.active?'active':'inactive','employment_status':status.dbValue,'id_approval_status':'PENDING','team_id':teamId,'created_at':DateTime.now().toUtc().toIso8601String()}).select('id').single();
     final id = inserted['id'].toString();
     await _client.from('employee_profiles').upsert({'user_id':id,'nic':_clean(nic),'address':_clean(address),'date_of_birth':_date(dob),'join_date':_date(joinDate ?? DateTime.now()),'updated_by':await _currentEmployeeId()});
