@@ -128,18 +128,26 @@ Deno.serve(async (request: Request) => {
   const deviceHash = await sha256(`${employee.id}:${installationId}`);
   const deviceLabel = `ddwc-install:${deviceHash}`;
   const pendingToken = `pending:${employee.id}`;
-  const { data: activeDevices, error: deviceLookupError } = await admin
+  const { data: allDevices, error: deviceLookupError } = await admin
     .from("user_devices")
-    .select("id,device_label,platform")
-    .eq("employee_id", employee.id)
-    .eq("is_active", true);
+    .select("id,device_label,platform,is_active")
+    .eq("employee_id", employee.id);
   if (deviceLookupError) {
     console.error("Device lookup failed", deviceLookupError.message);
     return respond(500, { code: "DEVICE_LOOKUP_FAILED", error: "Could not verify registered device." });
   }
 
+  const devices = allDevices ?? [];
+  const activeDevices = devices.filter((device) => device.is_active === true);
+  const revokedInstallation = devices.some((device) =>
+    device.is_active !== true && device.device_label === deviceLabel
+  );
+  if (revokedInstallation) {
+    return respond(403, { code: "DEVICE_REGISTRATION_REVOKED", error: "This device registration was reset by the Owner. Sign in from the newly authorized device or contact the Owner." });
+  }
+
   let deviceId: string;
-  const sameInstallation = (activeDevices ?? []).find((device) => device.device_label === deviceLabel);
+  const sameInstallation = activeDevices.find((device) => device.device_label === deviceLabel);
   if (sameInstallation) {
     deviceId = sameInstallation.id;
     const { error: seenError } = await admin.from("user_devices")
@@ -147,7 +155,7 @@ Deno.serve(async (request: Request) => {
       .eq("id", deviceId).eq("is_active", true);
     if (seenError) return respond(500, { code: "DEVICE_UPDATE_FAILED", error: "Could not refresh registered device." });
   } else {
-    if ((activeDevices ?? []).length > 0) {
+    if (activeDevices.length > 0) {
       return respond(403, { code: "DEVICE_ALREADY_REGISTERED", error: "This employee is registered on another device. Ask the Owner to reset device registration." });
     }
     const { data: created, error: createError } = await admin.from("user_devices")
