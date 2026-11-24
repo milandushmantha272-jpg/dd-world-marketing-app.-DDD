@@ -13,7 +13,7 @@ class CommissionComplaintsCenterScreen extends ConsumerWidget {
   final EmployeeProfile profile;
 
   bool get _owner => profile.role == EmployeeRole.owner;
-  bool get _canSubmit => profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent;
+  bool get _canSubmit => profile.role == EmployeeRole.teamLeader || profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
