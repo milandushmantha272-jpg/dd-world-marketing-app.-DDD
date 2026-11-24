@@ -193,14 +193,14 @@ class _AttendanceManagementScreenState extends ConsumerState<AttendanceManagemen
       const SizedBox(height:8),
       requests.when(loading:()=>const Center(child:CircularProgressIndicator()),error:(e,_)=>_error(e),data:(rows)=>Column(children:[
         if(rows.isEmpty) const Padding(padding:EdgeInsets.all(24),child:Text('No leave requests visible.')),
-        for(final row in rows) Card(child:ListTile(leading:const Icon(Icons.event_busy),title:Text('${row['leave_type']} • ${row['start_date']} – ${row['end_date']}'),subtitle:Text('${(row['employee'] as Map?)?['name']??'Employee'}\n${row['reason']}'),isThreeLine:true,trailing:Text((row['status']??'PENDING').toString()),onTap:_canViewTeam&&row['status']=='PENDING'?()=>_reviewLeave(row):null)),
+        for(final row in rows) Card(child:ListTile(leading:const Icon(Icons.event_busy),title:Text('${row['leave_type']} • ${row['start_date']} – ${row['end_date']}'),subtitle:Text('${(row['employee'] as Map?)?['name']??'Employee'}\n${row['reason']}'),isThreeLine:true,trailing:Text((row['status']??'PENDING').toString()),onTap:(_isOwner&&row['review_stage']=='PENDING_OWNER')||(widget.profile.role==EmployeeRole.teamLeader&&row['review_stage']=='PENDING_TEAM_LEADER'&&row['user_id']!=widget.profile.id)?()=>_reviewLeave(row):null)),
       ])),
     ]);
   }
 
   Future<void> _submitLeave() async {
     final reason = TextEditingController();
-    var type = 'LEAVE';
+    var type = 'annual';
     var start = DateTime.now();
     var end = DateTime.now();
 
@@ -219,8 +219,10 @@ class _AttendanceManagementScreenState extends ConsumerState<AttendanceManagemen
                       initialValue: type,
                       decoration: const InputDecoration(labelText: 'Type'),
                       items: const [
-                        DropdownMenuItem(value: 'LEAVE', child: Text('Leave')),
-                        DropdownMenuItem(value: 'HALF_DAY', child: Text('Half Day')),
+                        DropdownMenuItem(value: 'annual', child: Text('Annual Leave')),
+                        DropdownMenuItem(value: 'casual', child: Text('Casual Leave')),
+                        DropdownMenuItem(value: 'sick', child: Text('Sick Leave')),
+                        DropdownMenuItem(value: 'half_day', child: Text('Half Day')),
                       ],
                       onChanged: (value) {
                         setDialogState(() {
