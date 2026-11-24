@@ -275,7 +275,7 @@ class RoleDashboard extends StatelessWidget {
                           (item.$1 == 'Employees' && profile.role == EmployeeRole.owner) ||
                           (item.$1 == 'Teams' && profile.role == EmployeeRole.owner) ||
                           (item.$1 == 'My Team' && (profile.role == EmployeeRole.teamLeader || profile.role == EmployeeRole.agent)) ||
-                          ((item.$1 == 'My Profile' && (profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent)) || item.$1.toLowerCase().contains('attendance')) || item.$1 == 'Reports Center' || item.$1 == 'Team Reports' || item.$1 == 'Dialog Reports' || item.$1 == 'EZ Cash' || item.$1 == 'Commission Complaints' || item.$1 == 'Complaints' || item.$1 == 'Meetings' || item.$1 == 'Owner Messages' || item.$1 == 'Communication Center' || item.$1 == 'Employee Center' || (item.$1 == 'Data Archive & Backup' && profile.role == EmployeeRole.owner)
+                          (((item.$1 == 'My Profile' || item.$1 == 'My Sales') && (profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent)) || item.$1.toLowerCase().contains('attendance')) || item.$1 == 'Reports Center' || item.$1 == 'Team Reports' || item.$1 == 'Dialog Reports' || item.$1 == 'EZ Cash' || item.$1 == 'Commission Complaints' || item.$1 == 'Complaints' || item.$1 == 'Meetings' || item.$1 == 'Owner Messages' || item.$1 == 'Communication Center' || item.$1 == 'Employee Center' || (item.$1 == 'Data Archive & Backup' && profile.role == EmployeeRole.owner)
                       ? () => Navigator.of(context).push(MaterialPageRoute<void>(
                             builder: (_) => RoleGuard(
                               profile: profile,
@@ -305,7 +305,11 @@ class RoleDashboard extends StatelessWidget {
                                       ? AttendanceManagementScreen(profile: profile)
                                       : (item.$1 == 'Teams' || item.$1 == 'My Team')
                                       ? TeamManagementScreen(role: profile.role)
-                                      : EmployeeManagementScreen(canManage: profile.role == EmployeeRole.owner),
+                                      : item.$1 == 'My Profile'
+                                          ? EmployeeCenterScreen(profile: profile)
+                                          : item.$1 == 'My Sales'
+                                              ? ActivationCenterScreen(profile: profile)
+                                              : EmployeeManagementScreen(canManage: profile.role == EmployeeRole.owner),
                             ),
                           ))
                       : null,
@@ -318,7 +322,7 @@ class RoleDashboard extends StatelessWidget {
                         Icon(item.$2, size: 30, color: const Color(0xFF1F5AA6)),
                         const SizedBox(height: 12),
                         Text(item.$1, style: const TextStyle(fontWeight: FontWeight.w600)),
-                        if ((item.$1 == 'Employees' && profile.role == EmployeeRole.owner) || (item.$1 == 'Teams' && profile.role == EmployeeRole.owner) || (item.$1 == 'My Team' && (profile.role == EmployeeRole.teamLeader || profile.role == EmployeeRole.agent)) || (item.$1 == 'My Profile' && (profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent)) || item.$1.toLowerCase().contains('attendance') || item.$1 == 'Activations' || item.$1 == 'Team Sales' || item.$1 == 'Submit Activation' || item.$1 == 'Commissions' || item.$1 == 'My Commission') const Text('Open module', style: TextStyle(fontSize: 11, color: Color(0xFF667085))),
+                        if ((item.$1 == 'Employees' && profile.role == EmployeeRole.owner) || (item.$1 == 'Teams' && profile.role == EmployeeRole.owner) || (item.$1 == 'My Team' && (profile.role == EmployeeRole.teamLeader || profile.role == EmployeeRole.agent)) || (item.$1 == 'My Profile' && (profile.role == EmployeeRole.agent || profile.role == EmployeeRole.directAgent)) || item.$1.toLowerCase().contains('attendance') || item.$1 == 'Activations' || item.$1 == 'Team Sales' || item.$1 == 'Submit Activation' || item.$1 == 'Commissions' || item.$1 == 'My Commission' || item.$1 == 'My Sales') const Text('Open module', style: TextStyle(fontSize: 11, color: Color(0xFF667085))),
                       ],
                     ),
                   ),
