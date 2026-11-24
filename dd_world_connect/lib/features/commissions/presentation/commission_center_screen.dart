@@ -448,7 +448,7 @@ class _CommissionDetailsScreenState extends ConsumerState<CommissionDetailsScree
             ),
           ),
           if (_owner) FilledButton(onPressed: _busy ? null : _editAmount, child: const Text('Edit commission amount')),
-          if (!_owner && !_leader && commission.status != CommissionStatus.confirmed) ...[
+          if (!_owner && commission.employeeId == widget.profile.id && commission.status != CommissionStatus.confirmed) ...[
             TextField(controller: _note, decoration: const InputDecoration(labelText: 'Optional note'), maxLines: 2),
             const SizedBox(height: 8),
             FilledButton(onPressed: _busy ? null : () => _confirm(CommissionStatus.confirmed), child: const Text('Confirm received')),
