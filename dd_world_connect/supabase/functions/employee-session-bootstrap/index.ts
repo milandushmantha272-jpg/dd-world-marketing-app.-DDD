@@ -25,7 +25,7 @@ function normalizePhone(value: string | null | undefined): string | null {
 }
 
 function resolveRole(roleValue: unknown, teamId: unknown): string {
-  const role = String(roleValue ?? "").trim().toLowerCase();
+  const role = String(roleValue ?? "").trim().toLowerCase().replace(/[\\s-]+/g, "_");
   if (role === "owner") return "owner";
   if (role === "team_leader") return "team_leader";
   if (role === "direct_agent") return "direct_agent";
@@ -51,7 +51,7 @@ Deno.serve(async (request: Request) => {
   const userClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data: userData, error: userError } = await userClient.auth.getUser(token);
   const authUser = userData.user;
-  if (userError || !authUser?.phone) return respond(401, { code: "AUTH_REQUIRED", error: "A verified phone session is required." });
+  if (userError || !authUser?.phone || !authUser.phone_confirmed_at) return respond(401, { code: "AUTH_REQUIRED", error: "A verified phone session is required." });
 
   let payload: { installation_id?: unknown; platform?: unknown };
   try {
