@@ -105,9 +105,10 @@ class AttendanceRepository {
     if (end.isBefore(start)) throw const FormatException('End date must not be before start date.');
     if (reason.trim().length < 3) throw const FormatException('Enter a reason with at least 3 characters.');
     final employeeId = await _currentEmployeeId();
-    final user = await _client.from('users').select('team_id').eq('id', employeeId).single();
+    final user = await _client.from('users').select('team_id,role').eq('id', employeeId).single();
     final teamId = user['team_id'] as String?;
-    final stage = teamId == null ? 'PENDING_OWNER' : 'PENDING_TEAM_LEADER';
+    final isTeamLeader = user['role']?.toString() == 'team_leader';
+    final stage = teamId == null || isTeamLeader ? 'PENDING_OWNER' : 'PENDING_TEAM_LEADER';
     final isHalfDay = leaveType.toLowerCase() == 'half_day';
     await _client.from('leave_requests').insert({
       'user_id': employeeId,
