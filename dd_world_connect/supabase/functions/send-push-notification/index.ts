@@ -36,7 +36,7 @@ Deno.serve(async (req:Request)=>{
     const {data:notice,error:noticeError}=await admin.from("notifications").select("id,user_id,title,body,type,data").eq("id",notification_id).single();
     if(noticeError||!notice) return new Response(JSON.stringify({error:"Notification not found"}),{status:404,headers:{...cors,"content-type":"application/json"}});
     if(notice.user_id!==actor.id&&actor.role!=="owner") return new Response(JSON.stringify({error:"Forbidden"}),{status:403,headers:{...cors,"content-type":"application/json"}});
-    const {data:devices}=await admin.from("user_devices").select("fcm_token").eq("employee_id",notice.user_id).eq("is_active",true);
+    const {data:devices}=await admin.from("user_devices").select("fcm_token").eq("employee_id",notice.user_id).eq("is_active",true).not("fcm_token","like","pending:%");
     if(!devices?.length) return new Response(JSON.stringify({sent:0,reason:"No registered devices"}),{headers:{...cors,"content-type":"application/json"}});
     const account=JSON.parse(Deno.env.get("FCM_SERVICE_ACCOUNT_JSON")??"{}");
     if(!account.project_id||!account.private_key||!account.client_email) throw new Error("FCM_SERVICE_ACCOUNT_JSON secret is not configured");
