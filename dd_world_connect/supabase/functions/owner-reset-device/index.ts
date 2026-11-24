@@ -102,6 +102,6 @@ Deno.serve(async (request: Request) => {
   return respond(200, {
     success: true,
     employee_code: target.agent_code,
-    revoked_registration_count: revoked?.length ?? 0,
+    revoked_registration_count: activeRows?.length ?? 0,
   });
 });
