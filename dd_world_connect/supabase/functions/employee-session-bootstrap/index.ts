@@ -127,7 +127,7 @@ Deno.serve(async (request: Request) => {
   // reserves the installation until Firebase supplies its real token after login.
   const deviceHash = await sha256(`${employee.id}:${installationId}`);
   const deviceLabel = `ddwc-install:${deviceHash}`;
-  const pendingToken = `pending:${deviceHash}`;
+  const pendingToken = `pending:${employee.id}`;
   const { data: activeDevices, error: deviceLookupError } = await admin
     .from("user_devices")
     .select("id,device_label,platform")
