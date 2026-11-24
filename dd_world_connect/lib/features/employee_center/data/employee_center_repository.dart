@@ -133,10 +133,13 @@ class EmployeeCenterRepository {
   }
 
   Future<void> applyLeave({required String employeeId,required String leaveType,required DateTime start,required DateTime end,required String reason,required bool halfDayMorning}) async {
+    if (!['annual','casual','sick','half_day'].contains(leaveType)) throw StateError('Choose a valid leave type.');
     if (end.isBefore(start)) throw StateError('End date must not be before start date.');
-    final emp = await client.from('users').select('team_id').eq('id',employeeId).single();
+    if (reason.trim().length < 3) throw StateError('Enter a leave reason with at least 3 characters.');
+    final emp = await client.from('users').select('team_id,role').eq('id',employeeId).single();
     final teamId = emp['team_id'] as String?;
-    final stage = teamId == null ? 'PENDING_OWNER' : 'PENDING_TEAM_LEADER';
+    final isTeamLeader = emp['role']?.toString() == 'team_leader';
+    final stage = teamId == null || isTeamLeader ? 'PENDING_OWNER' : 'PENDING_TEAM_LEADER';
     final days = leaveType == 'half_day' ? 0.5 : end.difference(start).inDays + 1.0;
     await client.from('leave_requests').insert({'user_id':employeeId,'team_id':teamId,'leave_type':leaveType,'start_date':start.toIso8601String().substring(0,10),'end_date':end.toIso8601String().substring(0,10),'reason':reason.trim(),'status':stage,'review_stage':stage,'days':days,'half_day_period':leaveType == 'half_day' ? (halfDayMorning ? 'morning' : 'afternoon') : null});
   }
