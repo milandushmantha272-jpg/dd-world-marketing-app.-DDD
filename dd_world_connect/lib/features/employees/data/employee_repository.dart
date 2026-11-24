@@ -39,9 +39,44 @@ class EmployeeRepository {
     await _client.from('employee_approval_requests').insert({'employee_id':id,'requested_by':await _currentEmployeeId(),'status':'PENDING','request_payload':{'employee_code':code.trim(),'role':role.dbValue,'team_id':teamId}});
   }
   Future<void> update({required Employee employee, required String name, required String phone, required EmployeeRole role, required EmployeeStatus status, required String? teamId, String? nic, String? address, DateTime? dob, DateTime? joinDate}) async {
-    await _client.from('users').update({'name':name.trim(),'phone':phone.trim(),'role':role.dbValue,'status':status==EmployeeStatus.active?'active':'inactive','employment_status':status.dbValue,'team_id':teamId}).eq('id',employee.id);
-    await _client.from('employee_profiles').upsert({'user_id':employee.id,'nic':_clean(nic),'address':_clean(address),'date_of_birth':_date(dob),'join_date':_date(joinDate),'updated_by':await _currentEmployeeId()});
+    final newPhone = _normalizePhone(phone);
+    if (newPhone == null) throw const FormatException('Enter a valid Sri Lankan or international mobile number.');
+    final existing = await _client.from('users')
+        .select('phone,auth_user_id')
+        .eq('id', employee.id)
+        .single();
+    final phoneChanged = _normalizePhone(existing['phone']?.toString() ?? '') != newPhone;
+    if (phoneChanged) {
+      final rows = await _client.from('users').select('id,phone');
+      final duplicate = rows.any((row) =>
+          row['id']?.toString() != employee.id &&
+          _normalizePhone(row['phone']?.toString() ?? '') == newPhone);
+      if (duplicate) throw const FormatException('This mobile number is already assigned to another employee.');
+    }
+    final update = <String, dynamic>{
+      'name': name.trim(),
+      'phone': phone.trim(),
+      'role': role.dbValue,
+      'status': status == EmployeeStatus.active ? 'active' : 'inactive',
+      'employment_status': status.dbValue,
+      'team_id': teamId,
+    };
+    // A linked OTP identity belongs to the old phone number. Unlink it when
+    // the Owner changes the number so the new number can verify and rebind.
+    if (phoneChanged && existing['auth_user_id'] != null) {
+      update['auth_user_id'] = null;
+    }
+    await _client.from('users').update(update).eq('id', employee.id);
+    await _client.from('employee_profiles').upsert({
+      'user_id': employee.id,
+      'nic': _clean(nic),
+      'address': _clean(address),
+      'date_of_birth': _date(dob),
+      'join_date': _date(joinDate),
+      'updated_by': await _currentEmployeeId(),
+    });
   }
+
   Future<void> changeStatus(Employee employee, EmployeeStatus status, String reason) async {
     await _client.from('users').update({'employment_status':status.dbValue,'status':status==EmployeeStatus.active?'active':'inactive'}).eq('id',employee.id);
     await _client.from('employee_status_history').insert({'employee_id':employee.id,'previous_status':employee.status.dbValue,'new_status':status.dbValue,'reason':reason.trim(),'changed_by':await _currentEmployeeId()});
@@ -70,6 +105,19 @@ class EmployeeRepository {
     if (raw is Map) { final profile = Map<String,dynamic>.from(raw); final path = profile['profile_photo_url']?.toString(); if (path != null && path.isNotEmpty && !path.startsWith('http')) { try { profile['profile_photo_url'] = await _client.storage.from('employee-profile-photos').createSignedUrl(path, 604800); } catch (_) { profile['profile_photo_url'] = null; } } json['employee_profiles'] = profile; }
     return json;
   }
+  String? _normalizePhone(String value) {
+    final phone = value.trim().replaceAll(RegExp(r'[\s()\-]'), '');
+    if (RegExp(r'^0[0-9]{9}
+  String? _date(DateTime? value) => value == null ? null : '${value.year.toString().padLeft(4,'0')}-${value.month.toString().padLeft(2,'0')}-${value.day.toString().padLeft(2,'0')}';
+}
+).hasMatch(phone)) return '+94' + phone.substring(1);
+    if (RegExp(r'^\+[1-9]\d{7,14}
+  String? _date(DateTime? value) => value == null ? null : '${value.year.toString().padLeft(4,'0')}-${value.month.toString().padLeft(2,'0')}-${value.day.toString().padLeft(2,'0')}';
+}
+).hasMatch(phone)) return phone;
+    return null;
+  }
+
   String? _clean(String? value) => value == null || value.trim().isEmpty ? null : value.trim();
   String? _date(DateTime? value) => value == null ? null : '${value.year.toString().padLeft(4,'0')}-${value.month.toString().padLeft(2,'0')}-${value.day.toString().padLeft(2,'0')}';
 }
