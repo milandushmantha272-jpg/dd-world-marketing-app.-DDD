@@ -43,7 +43,7 @@ class FcmNotificationService {
     try {
       final reservation = await client
           .from('user_devices')
-          .select('device_label')
+          .select('id')
           .eq('id', deviceRegistrationId)
           .eq('employee_id', employeeId)
           .eq('is_active', true)
