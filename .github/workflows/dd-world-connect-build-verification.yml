@@ -56,6 +56,23 @@ jobs:
           echo "Verified Flutter Android platform files:"
           find android -maxdepth 4 -type f | sort | head -100
 
+      - name: Restore expected Android application ID
+        shell: bash
+        run: |
+          set -euo pipefail
+          generated_id="com.ddworld.marketing.dd_world_connect"
+          expected_id="com.ddworld.marketing.app"
+          if grep -RIl "$generated_id" android/app >/tmp/ddwc-package-files.txt; then
+            while IFS= read -r file; do
+              sed -i "s/$generated_id/$expected_id/g" "$file"
+            done </tmp/ddwc-package-files.txt
+          fi
+          if grep -RIl "$generated_id" android/app; then
+            echo "Generated Android package ID was not fully replaced."
+            exit 1
+          fi
+          grep -R -nE 'namespace|applicationId|^package ' android/app/src/main android/app/build.gradle* || true
+
       - name: flutter pub get
         run: flutter pub get
 
@@ -91,6 +108,19 @@ jobs:
           echo "RELEASE_BUILD_SECONDS=$((end-start))" >> "$GITHUB_ENV"
           test -s build/app/outputs/flutter-apk/app-release.apk
           ls -lh build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Verify APK application ID
+        shell: bash
+        run: |
+          set -euo pipefail
+          build_tools="${ANDROID_HOME:-${ANDROID_SDK_ROOT}}/build-tools"
+          aapt="$(find "$build_tools" -type f -name aapt | sort -V | tail -n 1)"
+          test -n "$aapt" || { echo "Android aapt tool was not found."; exit 1; }
+          for apk in build/app/outputs/flutter-apk/app-debug.apk build/app/outputs/flutter-apk/app-release.apk; do
+            actual="$("$aapt" dump badging "$apk" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p")"
+            echo "$(basename "$apk"): $actual"
+            test "$actual" = "com.ddworld.marketing.app"
+          done
 
       - name: Summarize APK artifacts
         if: always()
