@@ -25,7 +25,7 @@ function normalizePhone(value: string | null | undefined): string | null {
 }
 
 function resolveRole(roleValue: unknown, teamId: unknown): string {
-  const role = String(roleValue ?? "").trim().toLowerCase().replace(/[\\s-]+/g, "_");
+  const role = String(roleValue ?? "").trim().toLowerCase().replace(/[\s-]+/g, "_");
   if (role === "owner") return "owner";
   if (role === "team_leader") return "team_leader";
   if (role === "direct_agent") return "direct_agent";
