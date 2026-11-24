@@ -16,7 +16,7 @@ class AuthRepository {
   String normalizePhone(String input) {
     final phone = input.replaceAll(RegExp(r'[\s()\-]'), '');
     if (RegExp(r'^0[0-9]{9}$').hasMatch(phone)) {
-      return '+94' + phone.substring(1);
+      return '+94${phone.substring(1)}';
     }
     if (!RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(phone)) {
       throw const AuthInputException(
