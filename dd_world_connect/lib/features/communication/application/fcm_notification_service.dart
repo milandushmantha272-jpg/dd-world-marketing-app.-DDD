@@ -11,7 +11,6 @@ class FcmNotificationService {
   StreamSubscription<RemoteMessage>? foregroundSubscription;
 
   Future<void> initialize({
-    required String employeeId,
     required String deviceRegistrationId,
     required String platform,
   }) async {
