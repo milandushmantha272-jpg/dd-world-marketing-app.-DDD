@@ -5,6 +5,17 @@ import '../domain/employee.dart';
 class EmployeeRepository {
   EmployeeRepository({SupabaseClient? client}) : _client = client ?? Supabase.instance.client;
   final SupabaseClient _client;
+
+  Future<String> _currentEmployeeId() async {
+    final authId = await _currentEmployeeId();
+    if (authId == null) throw const AuthException('Sign in again to continue.');
+    final row = await _client
+        .from('users')
+        .select('id')
+        .eq('auth_user_id', authId)
+        .single();
+    return row['id'].toString();
+  }
   static const _selection = 'id,agent_code,name,phone,email,role,status,employment_status,id_approval_status,team_id,reports_to_user_id,created_at,teams(id,name),employee_profiles(nic,address,date_of_birth,join_date,profile_photo_url)';
 
   Future<List<Employee>> list({String search = '', EmployeeStatus? status, String? teamId}) async {
@@ -24,23 +35,23 @@ class EmployeeRepository {
   Future<void> create({required String code, required String name, required String phone, required EmployeeRole role, required EmployeeStatus status, required String? teamId, String? nic, String? address, DateTime? dob, DateTime? joinDate}) async {
     final inserted = await _client.from('users').insert({'agent_code':code.trim(),'name':name.trim(),'phone':phone.trim(),'role':role.dbValue,'status':status==EmployeeStatus.active?'active':'inactive','employment_status':status.dbValue,'id_approval_status':'PENDING','team_id':teamId,'created_at':DateTime.now().toUtc().toIso8601String()}).select('id').single();
     final id = inserted['id'].toString();
-    await _client.from('employee_profiles').upsert({'user_id':id,'nic':_clean(nic),'address':_clean(address),'date_of_birth':_date(dob),'join_date':_date(joinDate ?? DateTime.now()),'updated_by':_client.auth.currentUser?.id});
-    await _client.from('employee_approval_requests').insert({'employee_id':id,'requested_by':_client.auth.currentUser?.id,'status':'PENDING','request_payload':{'employee_code':code.trim(),'role':role.dbValue,'team_id':teamId}});
+    await _client.from('employee_profiles').upsert({'user_id':id,'nic':_clean(nic),'address':_clean(address),'date_of_birth':_date(dob),'join_date':_date(joinDate ?? DateTime.now()),'updated_by':await _currentEmployeeId()});
+    await _client.from('employee_approval_requests').insert({'employee_id':id,'requested_by':await _currentEmployeeId(),'status':'PENDING','request_payload':{'employee_code':code.trim(),'role':role.dbValue,'team_id':teamId}});
   }
   Future<void> update({required Employee employee, required String name, required String phone, required EmployeeRole role, required EmployeeStatus status, required String? teamId, String? nic, String? address, DateTime? dob, DateTime? joinDate}) async {
     await _client.from('users').update({'name':name.trim(),'phone':phone.trim(),'role':role.dbValue,'status':status==EmployeeStatus.active?'active':'inactive','employment_status':status.dbValue,'team_id':teamId}).eq('id',employee.id);
-    await _client.from('employee_profiles').upsert({'user_id':employee.id,'nic':_clean(nic),'address':_clean(address),'date_of_birth':_date(dob),'join_date':_date(joinDate),'updated_by':_client.auth.currentUser?.id});
+    await _client.from('employee_profiles').upsert({'user_id':employee.id,'nic':_clean(nic),'address':_clean(address),'date_of_birth':_date(dob),'join_date':_date(joinDate),'updated_by':await _currentEmployeeId()});
   }
   Future<void> changeStatus(Employee employee, EmployeeStatus status, String reason) async {
     await _client.from('users').update({'employment_status':status.dbValue,'status':status==EmployeeStatus.active?'active':'inactive'}).eq('id',employee.id);
-    await _client.from('employee_status_history').insert({'employee_id':employee.id,'previous_status':employee.status.dbValue,'new_status':status.dbValue,'reason':reason.trim(),'changed_by':_client.auth.currentUser?.id});
+    await _client.from('employee_status_history').insert({'employee_id':employee.id,'previous_status':employee.status.dbValue,'new_status':status.dbValue,'reason':reason.trim(),'changed_by':await _currentEmployeeId()});
   }
   Future<void> transfer(Employee employee,{required String? teamId,required String? reportsToId,required String reason}) async {
     await _client.from('users').update({'team_id':teamId,'reports_to_user_id':reportsToId}).eq('id',employee.id);
-    await _client.from('employee_transfer_history').insert({'employee_id':employee.id,'previous_team_id':employee.teamId,'new_team_id':teamId,'previous_reports_to_user_id':employee.reportsToId,'new_reports_to_user_id':reportsToId,'reason':reason.trim(),'transferred_by':_client.auth.currentUser?.id});
+    await _client.from('employee_transfer_history').insert({'employee_id':employee.id,'previous_team_id':employee.teamId,'new_team_id':teamId,'previous_reports_to_user_id':employee.reportsToId,'new_reports_to_user_id':reportsToId,'reason':reason.trim(),'transferred_by':await _currentEmployeeId()});
   }
   Future<void> reviewApproval(String requestId,String employeeId,{required bool approve,required String reason}) async {
-    await _client.from('employee_approval_requests').update({'status':approve?'APPROVED':'REJECTED','reviewed_by':_client.auth.currentUser?.id,'review_reason':reason.trim(),'reviewed_at':DateTime.now().toUtc().toIso8601String()}).eq('id',requestId);
+    await _client.from('employee_approval_requests').update({'status':approve?'APPROVED':'REJECTED','reviewed_by':await _currentEmployeeId(),'review_reason':reason.trim(),'reviewed_at':DateTime.now().toUtc().toIso8601String()}).eq('id',requestId);
     await _client.from('users').update({'id_approval_status':approve?'APPROVED':'REJECTED','status':approve?'active':'inactive'}).eq('id',employeeId);
   }
   Future<List<Map<String,dynamic>>> history(String id) async {
@@ -51,7 +62,7 @@ class EmployeeRepository {
   Future<String> uploadPhoto(String employeeId, String fileName, Uint8List bytes, String contentType) async {
     final path = '$employeeId/${DateTime.now().millisecondsSinceEpoch}_${fileName.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_')}';
     await _client.storage.from('employee-profile-photos').uploadBinary(path, bytes, fileOptions: FileOptions(contentType: contentType, upsert: false));
-    await _client.from('employee_profiles').upsert({'user_id':employeeId,'profile_photo_url':path,'updated_by':_client.auth.currentUser?.id});
+    await _client.from('employee_profiles').upsert({'user_id':employeeId,'profile_photo_url':path,'updated_by':await _currentEmployeeId()});
     return path;
   }
   Future<Map<String,dynamic>> _signedPhoto(Map<String,dynamic> json) async {
