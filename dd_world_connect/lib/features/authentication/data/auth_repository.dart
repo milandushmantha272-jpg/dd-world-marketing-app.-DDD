@@ -108,8 +108,11 @@ class AuthRepository {
       if (code == 'DEVICE_ALREADY_REGISTERED') {
         return 'This employee is registered on another device. Ask the Owner to reset the device registration.';
       }
+      if (code == 'DEVICE_REGISTRATION_REVOKED') {
+        return 'The Owner reset this device registration. Sign in from the newly authorized device or contact the Owner.';
+      }
       if (code == 'DEVICE_REGISTRATION_REJECTED') {
-        return 'This installation was revoked or cannot be registered. Contact the Owner for assistance.';
+        return 'This installation cannot be registered. Contact the Owner for assistance.';
       }
       if (code == 'EMPLOYEE_NOT_APPROVED' || code == 'EMPLOYEE_NOT_FOUND') {
         return 'This mobile number is not linked to an approved, active DD WORLD employee. Contact the Owner.';
