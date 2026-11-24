@@ -100,8 +100,13 @@ class TeamRepository {
   }
 
   Future<Team> statistics(Team team,{DateTime? from,DateTime? to}) async {
-    final startDate=(from ?? DateTime(DateTime.now().year,DateTime.now().month,1)).toIso8601String().substring(0,10);
-    final endDate=(to ?? DateTime.now()).toIso8601String().substring(0,10);
+    final now=DateTime.now();
+    final startLocal=DateTime((from ?? DateTime(now.year,now.month,1)).year,(from ?? DateTime(now.year,now.month,1)).month,(from ?? DateTime(now.year,now.month,1)).day);
+    final endValue=to ?? now;
+    final endLocal=DateTime(endValue.year,endValue.month,endValue.day);
+    final endExclusiveLocal=endLocal.add(const Duration(days:1));
+    final startDate=startLocal.toIso8601String().substring(0,10);
+    final endDate=endLocal.toIso8601String().substring(0,10);
     final people=await members(team.id);
     final ids=people.map((p)=>p['id'].toString()).toList();
     if(ids.isEmpty) return team.withStatistics(activations:0,quantity:0,amount:0,present:0,attendance:0);
@@ -112,8 +117,8 @@ class TeamRepository {
         .from('activations')
         .select('id,status,created_at')
         .inFilter('employee_id',ids)
-        .gte('created_at',startDate)
-        .lt('created_at',DateTime.parse(endDate).add(const Duration(days:1)).toIso8601String());
+        .gte('created_at',startLocal.toUtc().toIso8601String())
+        .lt('created_at',endExclusiveLocal.toUtc().toIso8601String());
 
     final sales=await _client
         .from('sales')
