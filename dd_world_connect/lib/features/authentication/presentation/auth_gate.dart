@@ -80,7 +80,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     _pushInitializedFor = profile.id;
     _fcmService ??= FcmNotificationService(Supabase.instance.client);
     final platform = defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
-    unawaited(_fcmService!.initialize(employeeId: profile.id, platform: platform).catchError((Object error) {
+    unawaited(_fcmService!.initialize(employeeId: profile.id, deviceRegistrationId: profile.deviceRegistrationId, platform: platform).catchError((Object error) {
       debugPrint('FCM registration unavailable: $error');
     }));
   }
