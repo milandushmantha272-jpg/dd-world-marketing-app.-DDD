@@ -1,16 +1,8 @@
 name: DD WORLD CONNECT Flutter Validation
 
 on:
-  push:
-    branches:
-      - main
-      - feature/dd-world-connect-foundation
-      - release/dd-world-connect-v1
-  pull_request:
-    branches:
-      - main
-      - feature/dd-world-connect-foundation
-      - release/dd-world-connect-v1
+  # Manual fallback only. Automated Flutter checks run in dd-world-connect-ci.yml;
+  # the dedicated build-verification workflow is the single APK build lane.
   workflow_dispatch:
 
 permissions:
