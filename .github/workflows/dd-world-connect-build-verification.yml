@@ -70,21 +70,21 @@ jobs:
           test -n "$SUPABASE_URL" || { echo "Missing SUPABASE_URL GitHub secret or variable."; exit 1; }
           test -n "$SUPABASE_PUBLISHABLE_KEY" || { echo "Missing SUPABASE_PUBLISHABLE_KEY (or SUPABASE_ANON_KEY) GitHub secret or variable."; exit 1; }
 
-      - name: flutter build apk --debug --dart-define=SUPABASE_URL="$SUPABASE_URL" --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
+      - name: flutter build apk --debug
         shell: bash
         run: |
           start=$(date +%s)
-          flutter build apk --debug
+          flutter build apk --debug --dart-define=SUPABASE_URL="$SUPABASE_URL" --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
           end=$(date +%s)
           echo "DEBUG_BUILD_SECONDS=$((end-start))" >> "$GITHUB_ENV"
           test -s build/app/outputs/flutter-apk/app-debug.apk
           ls -lh build/app/outputs/flutter-apk/app-debug.apk
 
-      - name: flutter build apk --release --dart-define=SUPABASE_URL="$SUPABASE_URL" --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
+      - name: flutter build apk --release
         shell: bash
         run: |
           start=$(date +%s)
-          flutter build apk --release
+          flutter build apk --release --dart-define=SUPABASE_URL="$SUPABASE_URL" --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
           end=$(date +%s)
           echo "RELEASE_BUILD_SECONDS=$((end-start))" >> "$GITHUB_ENV"
           test -s build/app/outputs/flutter-apk/app-release.apk
