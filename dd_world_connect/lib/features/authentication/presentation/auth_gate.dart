@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../data/auth_repository.dart';
@@ -17,7 +16,6 @@ import '../../business_centers/presentation/dialog_reports_center_screen.dart';
 import '../../business_centers/presentation/commission_complaints_center_screen.dart';
 import '../../business_centers/presentation/ez_cash_center_screen.dart';
 import '../../communication/presentation/communication_center_screen.dart';
-import '../../communication/application/fcm_notification_service.dart';
 import '../../employee_center/presentation/employee_center_screen.dart';
 import '../../backup/presentation/data_archive_backup_center_screen.dart';
 
@@ -34,8 +32,6 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   Future<EmployeeProfile>? _profileFuture;
   String? _sessionUserId;
   String? _blockedMessage;
-  String? _pushInitializedFor;
-  FcmNotificationService? _fcmService;
 
   @override
   void initState() {
@@ -75,16 +71,6 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     }
   }
 
-  void _initializePush(EmployeeProfile profile) {
-    if (_pushInitializedFor == '${profile.id}:${profile.deviceRegistrationId}') return;
-    _pushInitializedFor = '${profile.id}:${profile.deviceRegistrationId}';
-    _fcmService ??= FcmNotificationService(Supabase.instance.client);
-    final platform = defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
-    unawaited(_fcmService!.initialize(employeeId: profile.id, deviceRegistrationId: profile.deviceRegistrationId, platform: platform).catchError((Object error) {
-      debugPrint('FCM registration unavailable: $error');
-    }));
-  }
-
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) return;
@@ -103,7 +89,6 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _subscription?.cancel();
-    _fcmService?.dispose();
     super.dispose();
   }
 
@@ -139,7 +124,6 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
             }),
           );
         }
-        _initializePush(snapshot.requireData);
         return RoleDashboard(profile: snapshot.requireData);
       },
     );
