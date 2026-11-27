@@ -8,6 +8,7 @@ import 'features/authentication/presentation/auth_gate.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+
   if (!SupabaseConfig.isConfigured) {
     runApp(const ConfigurationRequiredApp());
     return;

@@ -15,9 +15,12 @@ class AuthRepository {
 
   String normalizePhone(String input) {
     final phone = input.replaceAll(RegExp(r'[\s()\-]'), '');
+    if (RegExp(r'^0[0-9]{9}$').hasMatch(phone)) {
+      return '+94${phone.substring(1)}';
+    }
     if (!RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(phone)) {
       throw const AuthInputException(
-        'Enter the full mobile number with country code, e.g. +94771234567.',
+        'Enter a valid mobile number, e.g. 0771234567 or +94771234567.',
       );
     }
     return phone;
@@ -108,8 +111,11 @@ class AuthRepository {
       if (code == 'DEVICE_ALREADY_REGISTERED') {
         return 'This employee is registered on another device. Ask the Owner to reset the device registration.';
       }
+      if (code == 'DEVICE_REGISTRATION_REVOKED') {
+        return 'The Owner reset this device registration. Sign in from the newly authorized device or contact the Owner.';
+      }
       if (code == 'DEVICE_REGISTRATION_REJECTED') {
-        return 'This installation was revoked or cannot be registered. Contact the Owner for assistance.';
+        return 'This installation cannot be registered. Contact the Owner for assistance.';
       }
       if (code == 'EMPLOYEE_NOT_APPROVED' || code == 'EMPLOYEE_NOT_FOUND') {
         return 'This mobile number is not linked to an approved, active DD WORLD employee. Contact the Owner.';

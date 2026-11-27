@@ -15,13 +15,19 @@ dependencies:
   go_router: ^14.8.1
   geolocator: ^13.0.2
   permission_handler: ^11.3.1
-  firebase_core: ^3.10.0
-  firebase_messaging: ^15.2.0
   flutter_secure_storage: ^9.2.4
   uuid: ^4.5.1
   connectivity_plus: ^6.1.2
   image_picker: ^1.1.2
+  file_picker: ^10.3.10
+  excel: ^4.0.6
+  pdf: ^3.11.3
+  share_plus: ^10.1.4
   url_launcher: ^6.3.1
+  crypto: ^3.0.6
+  cross_file: ^0.3.4+2
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^6.0.2
 
 dev_dependencies:
   flutter_test:

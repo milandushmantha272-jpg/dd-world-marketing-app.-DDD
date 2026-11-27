@@ -6,11 +6,13 @@ on:
       - main
       - feature/dd-world-connect-foundation
       - release/dd-world-connect-v1
+      - integration/dd-world-connect-features-clean-2026-11-13
   pull_request:
     branches:
       - main
       - feature/dd-world-connect-foundation
       - release/dd-world-connect-v1
+      - integration/dd-world-connect-features-clean-2026-11-13
   workflow_dispatch:
 
 permissions:
@@ -23,6 +25,9 @@ jobs:
     defaults:
       run:
         working-directory: dd_world_connect
+    env:
+      SUPABASE_URL: https://gbszujosgslsjaiibasa.supabase.co
+      SUPABASE_PUBLISHABLE_KEY: sb_publishable_y7AXK7PAs06E66sgfn6aaQ_06WNuS0l
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -51,6 +56,23 @@ jobs:
           echo "Verified Flutter Android platform files:"
           find android -maxdepth 4 -type f | sort | head -100
 
+      - name: Restore expected Android application ID
+        shell: bash
+        run: |
+          set -euo pipefail
+          generated_id="com.ddworld.marketing.dd_world_connect"
+          expected_id="com.ddworld.marketing.app"
+          if grep -RIl "$generated_id" android/app >/tmp/ddwc-package-files.txt; then
+            while IFS= read -r file; do
+              sed -i "s/$generated_id/$expected_id/g" "$file"
+            done </tmp/ddwc-package-files.txt
+          fi
+          if grep -RIl "$generated_id" android/app; then
+            echo "Generated Android package ID was not fully replaced."
+            exit 1
+          fi
+          grep -R -nE 'namespace|applicationId|^package ' android/app/src/main android/app/build.gradle* || true
+
       - name: flutter pub get
         run: flutter pub get
 
@@ -60,11 +82,18 @@ jobs:
       - name: flutter test
         run: flutter test
 
+      - name: Verify Supabase runtime configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_URL" || { echo "Missing SUPABASE_URL GitHub secret or variable."; exit 1; }
+          test -n "$SUPABASE_PUBLISHABLE_KEY" || { echo "Missing SUPABASE_PUBLISHABLE_KEY (or SUPABASE_ANON_KEY) GitHub secret or variable."; exit 1; }
+
       - name: flutter build apk --debug
         shell: bash
         run: |
           start=$(date +%s)
-          flutter build apk --debug
+          flutter build apk --debug --dart-define=SUPABASE_URL="$SUPABASE_URL" --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
           end=$(date +%s)
           echo "DEBUG_BUILD_SECONDS=$((end-start))" >> "$GITHUB_ENV"
           test -s build/app/outputs/flutter-apk/app-debug.apk
@@ -74,11 +103,24 @@ jobs:
         shell: bash
         run: |
           start=$(date +%s)
-          flutter build apk --release
+          flutter build apk --release --dart-define=SUPABASE_URL="$SUPABASE_URL" --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY"
           end=$(date +%s)
           echo "RELEASE_BUILD_SECONDS=$((end-start))" >> "$GITHUB_ENV"
           test -s build/app/outputs/flutter-apk/app-release.apk
           ls -lh build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Verify APK application ID
+        shell: bash
+        run: |
+          set -euo pipefail
+          build_tools="${ANDROID_HOME:-${ANDROID_SDK_ROOT}}/build-tools"
+          aapt="$(find "$build_tools" -type f -name aapt | sort -V | tail -n 1)"
+          test -n "$aapt" || { echo "Android aapt tool was not found."; exit 1; }
+          for apk in build/app/outputs/flutter-apk/app-debug.apk build/app/outputs/flutter-apk/app-release.apk; do
+            actual="$("$aapt" dump badging "$apk" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p")"
+            echo "$(basename "$apk"): $actual"
+            test "$actual" = "com.ddworld.marketing.app"
+          done
 
       - name: Summarize APK artifacts
         if: always()

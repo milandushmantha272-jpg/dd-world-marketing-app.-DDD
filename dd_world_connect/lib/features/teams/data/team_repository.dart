@@ -100,21 +100,56 @@ class TeamRepository {
   }
 
   Future<Team> statistics(Team team,{DateTime? from,DateTime? to}) async {
-    final start=(from ?? DateTime(DateTime.now().year,DateTime.now().month,1)).toIso8601String().substring(0,10);
-    final end=(to ?? DateTime.now()).toIso8601String().substring(0,10);
+    final now=DateTime.now();
+    final startLocal=DateTime((from ?? DateTime(now.year,now.month,1)).year,(from ?? DateTime(now.year,now.month,1)).month,(from ?? DateTime(now.year,now.month,1)).day);
+    final endValue=to ?? now;
+    final endLocal=DateTime(endValue.year,endValue.month,endValue.day);
+    final endExclusiveLocal=endLocal.add(const Duration(days:1));
+    final startDate=startLocal.toIso8601String().substring(0,10);
+    final endDate=endLocal.toIso8601String().substring(0,10);
     final people=await members(team.id);
     final ids=people.map((p)=>p['id'].toString()).toList();
     if(ids.isEmpty) return team.withStatistics(activations:0,quantity:0,amount:0,present:0,attendance:0);
-    final sales=await _client.from('sales').select('id,quantity,amount,verification_status,sale_date').inFilter('agent_id',ids).gte('sale_date',start).lte('sale_date',end);
-    final attendance=await _client.from('attendance').select('id,user_id,status,date').inFilter('user_id',ids).gte('date',start).lte('date',end);
-    var quantity=0; num amount=0; var activations=0; var present=0;
+
+    // Activation Center writes to public.activations. Keep legacy sales
+    // quantity/amount separate instead of treating old sales rows as activations.
+    final activationRows=await _client
+        .from('activations')
+        .select('id,status,created_at')
+        .inFilter('employee_id',ids)
+        .gte('created_at',startLocal.toUtc().toIso8601String())
+        .lt('created_at',endExclusiveLocal.toUtc().toIso8601String());
+
+    final sales=await _client
+        .from('sales')
+        .select('id,quantity,amount,sale_date')
+        .inFilter('agent_id',ids)
+        .gte('sale_date',startDate)
+        .lte('sale_date',endDate);
+    final attendance=await _client
+        .from('attendance')
+        .select('id,user_id,status,date')
+        .inFilter('user_id',ids)
+        .gte('date',startDate)
+        .lte('date',endDate);
+
+    var quantity=0;
+    num amount=0;
+    var present=0;
     for(final row in sales){
       quantity+=(row['quantity'] as num?)?.toInt() ?? 0;
       amount+=(row['amount'] as num?) ?? 0;
-      if(['VERIFIED','SALE_CONFIRMED','COMPLETED'].contains(row['verification_status'])) activations++;
     }
-    for(final row in attendance){ if(['present','late','half_day'].contains(row['status'])) present++; }
-    return team.withStatistics(activations:activations,quantity:quantity,amount:amount,present:present,attendance:attendance.length);
+    for(final row in attendance){
+      if(['present','late','half_day'].contains(row['status'])) present++;
+    }
+    return team.withStatistics(
+      activations: activationRows.length,
+      quantity: quantity,
+      amount: amount,
+      present: present,
+      attendance: attendance.length,
+    );
   }
 
   String? _clean(String? v)=>v==null||v.trim().isEmpty?null:v.trim();

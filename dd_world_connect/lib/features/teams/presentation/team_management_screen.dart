@@ -218,7 +218,7 @@ class _TeamStatisticsScreenState extends ConsumerState<TeamStatisticsScreen> {
       Text('${team.name} • Current month', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), const SizedBox(height: 14),
       GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: 2, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.25, children: [
         _StatCard('Employees', '${team.employeeCount}', Icons.people_alt_outlined),
-        _StatCard('Verified Activations', '${team.activationCount}', Icons.verified_outlined),
+        _StatCard('Activations', '${team.activationCount}', Icons.verified_outlined),
         _StatCard('Sales Quantity', '${team.salesQuantity}', Icons.trending_up),
         _StatCard('Sales Amount', 'Rs. ${team.salesAmount.toStringAsFixed(2)}', Icons.payments_outlined),
         _StatCard('Present / Late', '${team.presentCount}', Icons.fact_check_outlined),

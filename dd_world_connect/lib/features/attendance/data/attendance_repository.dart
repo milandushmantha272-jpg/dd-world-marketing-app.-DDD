@@ -102,22 +102,40 @@ class AttendanceRepository {
   }
 
   Future<void> submitLeave({required String leaveType, required DateTime start, required DateTime end, required String reason}) async {
+    if (end.isBefore(start)) throw const FormatException('End date must not be before start date.');
+    if (reason.trim().length < 3) throw const FormatException('Enter a reason with at least 3 characters.');
     final employeeId = await _currentEmployeeId();
-    final user = await _client.from('users').select('team_id').eq('id',employeeId).single();
+    final user = await _client.from('users').select('team_id,role').eq('id', employeeId).single();
+    final teamId = user['team_id'] as String?;
+    final isTeamLeader = user['role']?.toString() == 'team_leader';
+    final stage = teamId == null || isTeamLeader ? 'PENDING_OWNER' : 'PENDING_TEAM_LEADER';
+    final isHalfDay = leaveType.toLowerCase() == 'half_day';
     await _client.from('leave_requests').insert({
-      'user_id':employeeId,'team_id':user['team_id'],'leave_type':leaveType,
-      'start_date':_date(start),'end_date':_date(end),'reason':reason.trim(),
+      'user_id': employeeId,
+      'team_id': teamId,
+      'leave_type': leaveType.toLowerCase(),
+      'start_date': _date(start),
+      'end_date': _date(end),
+      'reason': reason.trim(),
+      'status': stage,
+      'review_stage': stage,
+      'days': isHalfDay ? 0.5 : end.difference(start).inDays + 1.0,
     });
   }
 
   Future<List<Map<String,dynamic>>> leaveRequests() async {
-    final rows = await _client.from('leave_requests').select('id,user_id,team_id,leave_type,start_date,end_date,reason,status,review_note,created_at,employee:users!leave_requests_user_id_fkey(name,agent_code)').order('created_at',ascending:false).limit(300);
+    final rows = await _client.from('leave_requests').select('id,user_id,team_id,leave_type,start_date,end_date,reason,status,review_stage,review_note,created_at,employee:users!leave_requests_user_id_fkey(name,agent_code)').order('created_at',ascending:false).limit(300);
     return rows.map((row)=>Map<String,dynamic>.from(row)).toList();
   }
 
   Future<void> reviewLeave(String id,{required String status,String? note}) async {
-    final employeeId = await _currentEmployeeId();
-    await _client.from('leave_requests').update({'status':status,'reviewed_by':employeeId,'reviewed_at':DateTime.now().toUtc().toIso8601String(),'review_note':note}).eq('id',id);
+    final decision = status.toLowerCase() == 'approved' ? 'approved' : status.toLowerCase() == 'rejected' ? 'rejected' : null;
+    if (decision == null) throw const FormatException('Choose approve or reject.');
+    await _client.rpc('review_leave_request', params: {
+      'p_leave_request_id': id,
+      'p_decision': decision,
+      'p_note': note,
+    });
   }
 
   String _date(DateTime value) => '${value.year.toString().padLeft(4,'0')}-${value.month.toString().padLeft(2,'0')}-${value.day.toString().padLeft(2,'0')}';

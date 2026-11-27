@@ -106,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     onSubmitted: (_) => _loading ? null : _requestOtp(),
                     decoration: const InputDecoration(
                       labelText: 'Mobile number',
-                      hintText: '+94771234567',
+                      hintText: '0771234567 or +94771234567',
                       prefixIcon: Icon(Icons.phone_android_rounded),
                       border: OutlineInputBorder(),
                     ),
