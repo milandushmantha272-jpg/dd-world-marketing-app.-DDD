@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/config/supabase_config.dart';
@@ -9,11 +8,6 @@ import 'features/authentication/presentation/auth_gate.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  try {
-    await Firebase.initializeApp();
-  } catch (error) {
-    debugPrint('Firebase Messaging is not configured yet: $error');
-  }
 
   if (!SupabaseConfig.isConfigured) {
     runApp(const ConfigurationRequiredApp());
